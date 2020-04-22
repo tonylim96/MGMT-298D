@@ -1,0 +1,145 @@
+---
+title: "Week 2 Linear Regression"
+subtitle: "Lab 1 Predicting Health Insurance Expenses"
+author: "Tony Lim"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Overview
+
+In order to set premiums for their beneficiaries, health insurers develop models to accurately forecast medical expenses. Medical expenses are difficult to estimate because the most costly conditions are rare and often occur randomly. However, some conditions are more prevalent for certain segments of the population (e.g., lung cancer is more likely among smokers than non-smokers).
+
+The goal of this analysis is to use anonymized patient data to estimate the average medical care costs based on individual characteristics. These estimates could be used by private insurers to set prices, or by government payers (e.g., Medicaid) to predict costs.
+
+# 2. Data Collection
+ 
+We will use a simulated dataset containing hypothetical medical expenses for patients in the United States. This data was created using demographic statistics from the US Census Bureau, and thus, approximately reflect real-world conditions.
+
+The insurance.csv file includes 1,338 examples of beneficiaries currently enrolled in the insurance plan, with variables indicating characteristics of the patient as well as the total medical expenses charged to the plan for the calendar year. The independent variables are:
+
+* **age:** Age (in years) of the primary beneficiary (excluding those over 64, as they are typically covered by Medicare).
+* **sex:** Categorical variable for biological sex (male or female).
+* **bmi:** Body mass index (BMI), which equals weight (in kg) divided by height (in meters) squared. An ideal BMI is between 18.5 and 24.9.
+* **children:** Number of children/dependents covered by the insurance plan.
+* **smoker:** Categorical variable indicating if the individual regularly smokes tobacco (yes or no).
+* **region:** Categorical variable for place of residence in the US, divided into 4 geographic regions: northeast, southeast, southwest, or northwest.
+
+It is important to think about how these variables may be related to medical expenses. For example, we might expect that older people and smokers are at higher risk of large medical expenses. In regression analysis, relationships among the variables are specified by the user rather than being detected automatically, as with machine learning. We'll explore some of these potential relationships in the next section.
+
+# 3. Data Exploration
+
+Use read.csv() to load the insurance data for analysis. We add the option stringsAsFactors = TRUE to convert the 3 categorical variables to factors:
+
+```{r}
+list.of.packages <- c("tidyverse", "ggrepel", "broom", "jtools", "ggplot2", "psych")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(readr)
+library(tidyverse)
+library(ggrepel)
+library(broom)
+library(jtools)
+library(ggplot2)
+library(psych)
+```
+
+
+```{r}
+insurance <- read.csv("insurance.csv", stringsAsFactors = TRUE)
+str(insurance)
+```
+
+Our model's dependent variable is **expenses**, which measures the medical costs charged to the insurance plan for the year. Let's take a look at the summary statistics:
+
+## Question 1 
+What are the mean and median medical expenses? What does this tell you about the distribution? Use the hist() function to plot a histogram.
+```{r}
+mean(insurance$expenses)
+median(insurance$expenses)
+```
+
+Because the mean is higher than the median, this means that the distribution is possibly skewed to the right. 
+
+```{r}
+insurance %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = expenses), fill = "#2774AE") + 
+  labs(title = "Distribution of medical expenses",
+       x = "Medical expense ($)",
+       y = "Count")
+```
+
+## Question 2
+Create a 2x2 table, for sex and smoking status, with counts in each cell. What do you notice? 
+```{r}
+table(insurance$sex, insurance$smoker)
+```
+
+There is a higher number of males who smoke than for females.
+
+## Question 3
+Create a correlation matrix for the 4 numeric variables. Which 2 variables are most strongly correlated with each other?
+```{r}
+round(cor(insurance[c("age", "bmi", "children", "expenses")]), 2)
+```
+
+It appears the variables `age` and `expenses` are the most correlated with each other with a correlation coefficient of 0.30. 
+
+## Question 4
+Create a scatterplot matrix for the 4 numeric variables (use the psych package). What patterns do you notice? Which variable(s) look approximately normally distributed?
+```{r}
+pairs.panels(insurance[c("age", "bmi", "children", "expenses")])
+```
+
+`age` has a relatively uniform distribution. `bmi` appears to be normally distributed. `children` and `expenses` both appear to be skewed to the right. 
+
+## Question 5 
+Use a t-test to test whether mean expenses, by sex, is different.
+```{r}
+t.test(expenses ~ sex, data = insurance)
+```
+Because the p-value of 0.04 is lower than 0.05, the data are statistically significant. Therefore, there is sufficient support to suggest that the mean expenses, by sex, are different. On average, males appear to have higher medical expenses than females.
+
+# 4. Linear Regression Analysis
+
+We next use linear regression to examine the association between medical expenses and the independent variables.
+
+## Question 6
+Run a simple linear regression on just age (let's name this regression "reg1"). Use the tidy() command from the broom package to format the output. What is your interpretation of the coefficient on age? Is this statistically significant at the 5% level?
+
+```{r}
+reg1 <- lm(expenses ~ age, data = insurance)
+summ(reg1)
+```
+For every increase in one year of age, there is an increase of $257.72 in medical expenses. The age coefficient has a p-value of 0.00 (technically p-value < 0.01), so it is statistically significant at the 5% level. 
+
+## Question 7
+Run a regression with all independent variables included (let's name this regression "reg2"). Do men have higher or lower expenses, holding all other variables constant? What about smokers? Is this consistent with your earlier t test? What might explain this? Which geographic region has the highest medical expenses?
+
+```{r}
+reg2 <- lm(expenses ~ age + sex + bmi + children + smoker + region, data = insurance)
+summ(reg2)
+```
+
+It appears men have lower expenses, holding all other variables constant, since the `sexmale` coefficient is -131.31. This is not consistent with the previous t-test. This may be because adding the other variables into the model reveals that sex isn't necessarily correlated with medical expenses (p-value of 0.69) but rather more men are smokers, which is the factor that contributes more to higher medical expenses. 
+
+Smokers appear to have higher medical expenses compared to nonsmokers, holding all other variables constant. 
+
+The northwest region has the highest medical expenses compared to the other regions. 
+
+## Question 8
+Use the summary() command to evaluate the model performance. What fraction of the variation in medical expenses is explained by variation in these 6 variables?
+
+```{r}
+summary(reg2)
+```
+
+75% of the variation in medical expenses is explained by variation in these 6 variables in our model. 

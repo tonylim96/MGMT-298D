@@ -1,0 +1,200 @@
+---
+title: "Week 4 Multiple Linear Regression"
+subtitle: "Lab 2 Socioeconomics and Exercise Behavior"
+author: "Tony Lim"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Overview
+
+The paper "The economics of intense exercise" by Meltzer and Jena (*Journal of Health Economics*, 2010) specifies an model for exercise behavior. Individuals wish to maximize utility, which depends on health and other factors. Health depends on both exercise duration and intensity. Faced with a time budget constraint, the model posits that individuals with higher hourly wages will engage in more intense exercise because it is more time-efficient.
+
+The goal of this analysis is to replicate the study using real survey data on exercise behavior and various demographic variables.
+
+# 2. Data Collection
+
+We will use the National Health and Nutrition Examination Survey (NHANES) for 3 periods: 1999-2000, 2001-2002, 2003-2004. After downloading the raw data and cleaning it (given in the script EconomicsExercise.R), we have a dataset NHANES.csv, which includes 13,876 observations and 11 variables:
+
+* **SEQN:**          Survey respondant's sequence number
+* **HOURS_TOTAL:**   Total hours exercised in the last 30 days (NA if none)
+* **INTENSITY_AVG:** Average intensity of exercise (metabolic equivalent) in the last 30 days (NA if none)
+* **LN_HOURS:**      Natural-log of hours exercised (NA if none)
+* **LN_INTENSITY:**  Natural-log of average intensity (NA if none)
+* **ANY:**           Dummy variable =1 for any exercise and =0 if none
+* **INCOME:**        Household income of respondant
+* **RACE:**          Race/ethnicity of respondant
+* **AGE:**           Age of respondant (years)
+* **MARITAL:**       Marital status of respondant
+* **GENDER:**        Biological sex of respondant
+
+# 3. Data Exploration
+
+Use read.csv() to load the NHANES data for analysis.
+
+```{r}
+list.of.packages <- c("tidyverse", "dplyr", "jtools", "foreign", "wesanderson")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(tidyverse)
+library(foreign)
+library(wesanderson)
+
+NHANES <- read_csv("NHANES.csv")
+str(NHANES)
+```
+
+## Question 1
+
+What is the average number of hours exercised in the past 30 days among respondants reporting some activity? What is the maximum value? What are the characteristics of that individual?
+
+```{r}
+mean(NHANES$HOURS_TOTAL, na.rm = T)
+max(NHANES$HOURS_TOTAL, na.rm = T)
+NHANES[which.max(NHANES$HOURS_TOTAL), ]
+```
+
+# 4. Data Visualization
+
+Next, let's create a histogram of hours exercised by race/ethnicity. We will use ggplot to create 4 subplots using facet_wrap with different colors.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(jtools)
+
+NHANES %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = HOURS_TOTAL, fill = RACE)) + 
+  labs(title = "Distribution of hours exercised by race",
+       x = "Hours exercised",
+       y = "Count") +
+  scale_fill_manual(name = "Race", values = wes_palette("Darjeeling1")) +
+  facet_wrap(~ RACE)
+```
+
+Notice how the extreme exercise enthusiasts are making it difficult to see most of the data. Let's adjust 2 things. First, let's set binwidth = 2 (this is an option inside geom_histogram). Next, let's cap the x-axis at 60 hours. We can achieve this by replacing x=HOURS_TOTAL with x=ifelse(HOURS_TOTAL>60,60,HOURS_TOTAL). This works just like an if-else statment in Exel. It will lump anyone who reports exercising more than 60 hours into the 60 bin. Note, we are not changing the underlying data; this is just for graphical purposes.
+
+## Question 2
+Create a new histogram plot with binwidth = 2 and x-axes capped at 60 hours.
+
+```{r}
+NHANES %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = ifelse(HOURS_TOTAL > 60, 60, HOURS_TOTAL), 
+                               fill = RACE), binwidth = 2) + 
+  labs(title = "Adjusted distribution of hours exercised by race",
+       x = "Hours exercised",
+       y = "Count") +
+  scale_fill_manual(name = "Race", values = wes_palette("Darjeeling1")) +
+  facet_wrap(~ RACE)
+```
+
+## Question 3
+
+Plot a histogram of average intensity by income bracket. Use a binwidth of 0.5, and you do not need to cap the x-axis.
+
+```{r}
+inclab <- c("20-45K", "45-75K", "Above 75K", "Below 20K", "Refused", "Unsure", "NA")
+
+NHANES %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = INTENSITY_AVG, 
+                               fill = INCOME), binwidth = 0.5) + 
+  labs(title = "Distribution of average intensity by income bracket",
+       x = "Average intensity",
+       y = "Count") +
+  scale_fill_manual(name = "Income bracket", 
+                    values = c("#ECCBAE", "#046C9A", "#D69C4E", 
+                               "#ABDDDE", "#000000", "#000000"),
+                    na.value = "black") +
+  facet_wrap(~ INCOME)
+```
+
+## Question 4
+
+Let's repeat this, but further divide by gender. Hint: use facet_grid() instead of facet_wrap.
+
+```{r}
+NHANES %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = INTENSITY_AVG, 
+                               fill = INCOME), binwidth = 0.5) + 
+  labs(title = "Distribution of average intensity by income bracket and gender",
+       x = "Average intensity",
+       y = "Count") +
+  scale_fill_manual(name = "Income bracket", 
+                    values = c("#ECCBAE", "#046C9A", "#D69C4E",
+                               "#ABDDDE", "#000000", "#000000"),
+                    na.value = "black") +
+  facet_grid(cols = vars(INCOME), rows = vars(GENDER))
+```
+
+# 5. Linear Regression Analysis
+
+When we just plot individual histograms, it can be difficult to ascertain what is going on, since many variables may be correlated. Multivariate regression can help us unpack the data, to see which relationships are statistically significant. First, let's set our reference groups for each factor variable:
+
+```{r}
+# select the reference group for each factor variable
+
+NHANES$AGE <- relevel(NHANES$AGE, ref = "25_35")
+NHANES$GENDER <- relevel(NHANES$GENDER, ref = "Female")
+NHANES$MARITAL <- relevel(NHANES$MARITAL, ref = "Living_Partner")
+NHANES$RACE <- relevel(NHANES$RACE, ref = "Hispanic")
+NHANES$INCOME <- relevel(NHANES$INCOME, ref = "Below_20k")
+```
+
+## Question 5
+
+Regress ANY exercise on age, marital status, race, gender, and income. How do you interpret the coefficients on the income variables?
+
+```{r}
+ols <- lm(ANY ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
+summ(ols)
+```
+
+Note, this is called a *linear probability model*. Even though the dependent variable is binary, we can run OLS to more easily interpret the results. We will see later how to run this as a logistic regression instead.
+
+## Question 6
+
+Regress total hours of exercise on age, marital status, race, gender, and income. How do your results compare to Meltzer and Jena (Table 3)? What might explain this?
+
+```{r}
+# enter code
+```
+
+## Question 7
+
+Regress average exercise intensity on age, marital status, race, gender, and income. Does this support the hypothesis that higher income individuals report more intense exercise?
+
+```{r}
+# enter code
+```
+
+# Bonus
+
+Think about what might be driving these observed results. Use the following code to generate the following:
+
+* **Table1**: Description of each activity and the number of respondants who report doing it at each METS intensity level, ranging form 2.5 to 10.
+* **Histogram**: Number of respondents in each income bucket who report participating in each activity.
+
+Which activities might drive these results?
+
+```{r}
+library(tidyr)
+ACTIVITY <- read.csv("ACTIVITY.csv")
+INNER <- inner_join(NHANES, ACTIVITY, by="SEQN")
+table1 <- table(INNER$DESCRIPTION, INNER$PADMETS)
+table1
+```
+
+```{r}
+ggplot(data=INNER, aes(x=DESCRIPTION, fill=INCOME)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
