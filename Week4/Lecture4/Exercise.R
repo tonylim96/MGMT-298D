@@ -109,7 +109,7 @@ CLEAN$RACE <- factor(CLEAN$RIDRETH1,
                      labels=c("Hispanic", "Hispanic", "White", "Black", "Other/Multi"))
 
 CLEAN$INCOME <- cut(CLEAN$INDHHINC,
-                    breaks = c(0,4.5,7.5,10.5,11.5,76,98,Inf), 
+                    breaks = c(0, 4.5, 7.5, 10.5, 11.5, 76, 98, Inf), 
                     labels = c("Below_20k", "20k_45k", "45k_75k", "Above_75k", "Below_20k", "Refused", "Unsure"))
 
 
