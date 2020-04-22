@@ -47,7 +47,7 @@ library(tidyverse)
 library(foreign)
 library(wesanderson)
 
-NHANES <- read_csv("NHANES.csv")
+NHANES <- read.csv("NHANES.csv")
 str(NHANES)
 ```
 
@@ -144,11 +144,11 @@ When we just plot individual histograms, it can be difficult to ascertain what i
 ```{r}
 # select the reference group for each factor variable
 
-# NHANES$AGE <- relevel(NHANES$AGE, ref = "25_35")
-# NHANES$GENDER <- relevel(NHANES$GENDER, ref = "Female")
-# NHANES$MARITAL <- relevel(NHANES$MARITAL, ref = "Living_Partner")
-# NHANES$RACE <- relevel(NHANES$RACE, ref = "Hispanic")
-# NHANES$INCOME <- relevel(NHANES$INCOME, ref = "Below_20k")
+NHANES$AGE <- relevel(NHANES$AGE, ref = "25_35")
+NHANES$GENDER <- relevel(NHANES$GENDER, ref = "Female")
+NHANES$MARITAL <- relevel(NHANES$MARITAL, ref = "Living_Partner")
+NHANES$RACE <- relevel(NHANES$RACE, ref = "Hispanic")
+NHANES$INCOME <- relevel(NHANES$INCOME, ref = "Below_20k")
 ```
 
 ## Question 5
