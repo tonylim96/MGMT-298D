@@ -1,7 +1,7 @@
 ---
 title: "Week 4 Multiple Linear Regression"
 subtitle: "Lab 2 Socioeconomics and Exercise Behavior"
-author: "Tony Lim"
+author: "Team 6 (Tony Lim, Alex Frumkin, Sara Nager, Jaanhvi Vaidya"
 output:
   html_document:
     toc: true
