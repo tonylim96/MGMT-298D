@@ -1,7 +1,7 @@
 ---
 title: "Week 4 Multiple Linear Regression"
 subtitle: "Lab 2 Socioeconomics and Exercise Behavior"
-author: "Team 6 (Tony Lim, Alex Frumkin, Sara Nager, Jaanhvi Vaidya"
+author: "Team 6 (Tony Lim, Alex Frumkin, Sara Nager, Jaanhvi Vaidya)"
 output:
   html_document:
     toc: true
@@ -63,7 +63,7 @@ NHANES[which.max(NHANES$HOURS_TOTAL), ]
 
 # 4. Data Visualization
 
-Next, let's create a histogram of hours exercised by race/ethnicity. We will use ggplot to create 4 subplots using facet_wrap with different colors.
+Next, let's create a histogram of hours exercised by race/ethnicity. We will use ggplot to create 4 subplots using `facet_wrap()` with different colors.
 
 ```{r}
 library(ggplot2)
@@ -73,24 +73,24 @@ library(jtools)
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = HOURS_TOTAL, fill = RACE)) + 
-  labs(title = "Distribution of hours exercised by race",
+  labs(title = "Distribution of total hours exercised in the last 30 days by race",
        x = "Total hours exercised in the last 30 days",
        y = "Count") +
   scale_fill_manual(name = "Race", values = wes_palette("Darjeeling1")) +
   facet_wrap(~ RACE)
 ```
 
-Notice how the extreme exercise enthusiasts are making it difficult to see most of the data. Let's adjust 2 things. First, let's set binwidth = 2 (this is an option inside geom_histogram). Next, let's cap the x-axis at 60 hours. We can achieve this by replacing x=HOURS_TOTAL with x=ifelse(HOURS_TOTAL>60,60,HOURS_TOTAL). This works just like an if-else statment in Exel. It will lump anyone who reports exercising more than 60 hours into the 60 bin. Note, we are not changing the underlying data; this is just for graphical purposes.
+Notice how the extreme exercise enthusiasts are making it difficult to see most of the data. Let's adjust 2 things. First, let's set `binwidth = 2` (this is an option inside `geom_histogram()`). Next, let's cap the x-axis at 60 hours. We can achieve this by replacing `x = HOURS_TOTAL` with `x = ifelse(HOURS_TOTAL > 60, 60, HOURS_TOTAL)`. This works just like an if-else statment in Excel. It will lump anyone who reports exercising more than 60 hours into the 60 bin. Note, we are not changing the underlying data; this is just for graphical purposes.
 
 ## Question 2
-Create a new histogram plot with binwidth = 2 and x-axes capped at 60 hours.
+Create a new histogram plot with `binwidth = 2` and x-axes capped at 60 hours.
 
 ```{r}
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = ifelse(HOURS_TOTAL > 60, 60, HOURS_TOTAL), 
                                fill = RACE), binwidth = 2) + 
-  labs(title = "Adjusted distribution of hours exercised by race",
+  labs(title = "Adjusted distribution of total hours exercised in the last 30 days by race",
        x = "Total hours exercised in the last 30 days",
        y = "Count") +
   scale_fill_manual(name = "Race", values = wes_palette("Darjeeling1")) +
@@ -99,7 +99,7 @@ NHANES %>%
 
 ## Question 3
 
-Plot a histogram of average intensity by income bracket. Use a binwidth of 0.5, and you do not need to cap the x-axis.
+Plot a histogram of average intensity by income bracket. Use `binwidth = 0.5`, and you do not need to cap the x-axis.
 
 ```{r}
 inclab <- c("20-45K", "45-75K", "Above 75K", "Below 20K", "Refused", "Unsure", "NA")
@@ -120,7 +120,7 @@ NHANES %>%
 
 ## Question 4
 
-Let's repeat this, but further divide by gender. Hint: use facet_grid() instead of facet_wrap.
+Let's repeat this, but further divide by gender. Hint: use `facet_grid()` instead of `facet_wrap()`.
 
 ```{r}
 NHANES %>%
@@ -142,8 +142,7 @@ NHANES %>%
 When we just plot individual histograms, it can be difficult to ascertain what is going on, since many variables may be correlated. Multivariate regression can help us unpack the data, to see which relationships are statistically significant. First, let's set our reference groups for each factor variable:
 
 ```{r}
-# select the reference group for each factor variable
-
+# Select the reference group for each factor variable
 NHANES$AGE <- relevel(NHANES$AGE, ref = "25_35")
 NHANES$GENDER <- relevel(NHANES$GENDER, ref = "Female")
 NHANES$MARITAL <- relevel(NHANES$MARITAL, ref = "Living_Partner")
@@ -160,6 +159,8 @@ ols <- lm(ANY ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
 summ(ols)
 ```
 
+From the regression that set participants who earn below $20K as the reference group, we see that as income increases ($20-45K, $45-75K, above $75K), the coefficients also increase (0.08, 0.18, 0.27, respectively). Therefore, participants with more income are more likely to  exercise. 
+
 Note, this is called a *linear probability model*. Even though the dependent variable is binary, we can run OLS to more easily interpret the results. We will see later how to run this as a logistic regression instead.
 
 ## Question 6
@@ -169,16 +170,26 @@ Regress total hours of exercise on age, marital status, race, gender, and income
 ```{r}
 ols2 <- lm(HOURS_TOTAL ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
 summ(ols2)
+
+# ols3 <- lm(LN_HOURS ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
+# summ(ols3)
 ```
+
+The results from the regression differs from Table 3 from Meltzer and Jena. Some possible explanations could be that our dataset included extra categories not included in the article's dataset (e.g., included ages below 25, marital status of refused/unsure, race status of other/multi, and income status of refused/unsure). Our dataset had a sample size of 6,371 while the article's dataset had a sample size of 6,135. 
 
 ## Question 7
 
 Regress average exercise intensity on age, marital status, race, gender, and income. Does this support the hypothesis that higher income individuals report more intense exercise?
 
 ```{r}
-ols3 <- lm(INTENSITY_AVG ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
-summ(ols3)
+ols4 <- lm(INTENSITY_AVG ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
+summ(ols4)
+
+# ols5 <- lm(LN_INTENSITY ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
+# summ(ols5)
 ```
+
+The regression analysis does support the hypothesis that higher income individuals report more intense exercise. We see that respondants with an income above $75K have a coefficient value of 0.18 (p-value < 0.01). However, the coefficients for those earning $20-45K and $45-75K (0.01 and 0.00, respectively) were not statistically significant (p-values of 0.79 and 1.00, respectively). 
 
 # Bonus
 
@@ -192,11 +203,19 @@ Which activities might drive these results?
 ```{r}
 library(tidyr)
 ACTIVITY <- read.csv("ACTIVITY.csv")
-INNER <- inner_join(NHANES, ACTIVITY, by="SEQN")
+INNER <- inner_join(NHANES, ACTIVITY, by = "SEQN")
 table1 <- table(INNER$DESCRIPTION, INNER$PADMETS)
 table1
 ```
 
 ```{r}
-ggplot(data=INNER, aes(x=DESCRIPTION, fill=INCOME)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+INNER %>%
+  ggplot() + 
+  geom_bar(aes(x = DESCRIPTION, fill = INCOME)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+  labs(title = "Distribution of activity by income",
+       x = "Activity",
+       y = "Count")
 ```
+
+Higher income respondants participated in more intense activities such as bicycling, jogging, swimming, and using the treadmill compared to their lower income counterparts. This may be due to wealthier individuals being more concerned and educated about their health. Also, wealthier individuals may be healthier in general, allowing them to participate in more intense exercises. Perhaps the built environment plays a role, and higher income individuals live in safer neighborhoods that allow for bicycling and jogging.
