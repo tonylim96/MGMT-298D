@@ -1,7 +1,7 @@
 ---
 title: "Week 4 Multiple Linear Regression"
 subtitle: "Lab 2 Socioeconomics and Exercise Behavior"
-author: "Team 6 (Tony Lim, Alex Frumkin, Sara Nager, Jaanhvi Vaidya)"
+author: "Tony Lim"
 output:
   html_document:
     toc: true
@@ -36,7 +36,7 @@ We will use the National Health and Nutrition Examination Survey (NHANES) for 3 
 
 # 3. Data Exploration
 
-Use read.csv() to load the NHANES data for analysis.
+Use `read.csv()` to load the NHANES data for analysis.
 
 ```{r}
 list.of.packages <- c("tidyverse", "dplyr", "jtools", "foreign", "wesanderson")
@@ -175,7 +175,7 @@ summ(ols2)
 # summ(ols3)
 ```
 
-The results from the regression differs from Table 3 from Meltzer and Jena. Some possible explanations could be that our dataset included extra categories not included in the article's dataset (e.g., included ages below 25, marital status of refused/unsure, race status of other/multi, and income status of refused/unsure). Our dataset had a sample size of 6,371 while the article's dataset had a sample size of 6,135. 
+The results from the regression do differ from Table 3 from Meltzer and Jena. Some possible explanations could be that our dataset included extra categories not included in the article's dataset (e.g., included ages below 25, marital status of refused/unsure, race status of other/multi, and income status of refused/unsure). Our dataset had a sample size of 6,371 while the article's dataset had a sample size of 6,135. 
 
 ## Question 7
 
