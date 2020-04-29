@@ -1,10 +1,16 @@
 ---
-title: "Class 5: Some R fundamentals"
-subtitle: "Application: Caloric intake and demographics"
+title: "Week 5 R Fundamentals"
+subtitle: "Lab 3 Caloric Intake and Demographics"
+author: "Tony Lim"
 output:
-  word_document: default
-  html_notebook: default
+  html_document:
+    toc: true
+    toc_depth: 4
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 # 1. Overview
 
@@ -15,80 +21,130 @@ The goal of this analysis is to explore the relationship between total caloric i
 We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset TOTAL_CALORIES was previously created using the NHANES datasets DR1IFF_I.XPT (on daily food consumption) and DRXFCD_I.XPT (on food codes) available at https://wwwn.cdc.gov/nchs/nhanes/Default.aspx.
 
 **DEMO** 
+
 * **SEQN:**          Survey respondant's sequence number
 * **AGE:**           Age of respondant (years)
 * **GENDER:**        Biological sex of respondant
 * **EDUCATION:**     Education level of respondant ("Less than High School", "High School", "Some College", "College Grad",)
 
 **TOTAL_CALORIES**
+
 * **SEQN:**          Survey respondant's sequence number
 * **ALL_CALORIES:**  Total calories consumed (food + drinks) by respondant in past 24 hours     
 * **BEER_CALORIES:** Calories consumed from beer in past 24 hours
 
-Let's save both files in a folder called NHANES. Then use read.csv() to load each dataset for analysis.
+Use `read.csv()` to load each dataset for analysis.
 ```{r}
 library(readr)
-DEMO <- read.csv("NHANES/DEMO.csv")
-TOTAL_CALORIES <- read.csv("NHANES/TOTAL_CALORIES.csv")
+
+DEMO <- read.csv("DEMO.csv")
+
+TOTAL_CALORIES <- read.csv("TOTAL_CALORIES.csv")
 ```
 
-**QUESTION 1:** After loading the dplyer library, use full_join() to merge the datasets using "SEQN" as the common link. Name this new dataset FULL. How many observations are in FULL?
-```{r}
-# enter code
-```
-**SOLUTION:** With full_join(), we have 9,207 observations.
+## Question 1
 
-**QUESTION 2:** Use inner_join() to merge the datasets using "SEQN" as the common link. Name this new dataset INNER. How many observations are in INNER?
+After loading the dplyr library, use `full_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset FULL. How many observations are in FULL?
+
 ```{r}
-# enter code
+library(dplyr)
+
+FULL  <- full_join(DEMO, TOTAL_CALORIES, by = "SEQN")
 ```
-**SOLUTION:** With inner_join(), we have 5,017 observations.
+
+**SOLUTION:** With `full_join()`, we have 9,207 observations.
+
+## Question 2
+
+Use `inner_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset INNER. How many observations are in INNER?
+
+```{r}
+INNER <- inner_join(DEMO, TOTAL_CALORIES, by = "SEQN")
+```
+
+**SOLUTION:** With `inner_join()`, we have 5,017 observations.
 
 We will use INNER in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.
 
 # 3. Data Exploration
 
 Let's calculate the mean and standard deviation of TOTAL calories by gender using the following code:
+
 ```{r}
-# tapply(INNER$ALL_CALORIES, INNER$GENDER, summary)
+tapply(INNER$ALL_CALORIES, INNER$GENDER, mean)
+
+tapply(INNER$ALL_CALORIES, INNER$GENDER, sd)
+
 ```
 
-**QUESTION 3:** What are the mean BEER calories consumed by men and women?
-```{r}
-# enter code
-```
-**SOLUTION:** Men consume 92.4 beer calories and women consume 16.65 beer calories, on average.  
+Women have an average total caloric consumption of 1799.3 with a standard deviation of 761.1. Men have an average total caloric consumption of 2373.9 with a standard deviation of 1039.3. 
 
-**QUESTION 4:** Consumers with what education level consume the most TOTAL calories? And the most BEER calories?
-```{r}
-# enter code
-```
-**SOLUTION:** College graduates consume the most total calories, on average, but individuals with a high school degree consume the most beer calories, on average.
+## Question 3
 
+What are the mean BEER calories consumed by men and women?
+```{r}
+tapply(INNER$BEER, INNER$GENDER, mean)
+```
+**SOLUTION:** On average, men consume 92.4 beer calories while women consume 16.6 beer calories.  
+
+## Question 4
+
+Consumers with which education level consume the most TOTAL calories? And the most BEER calories?
+```{r}
+tapply(INNER$ALL_CALORIES, INNER$EDUCATION, mean)
+```
+
+```{R}
+tapply(INNER$BEER_CALORIES, INNER$EDUCATION, mean)
+```
+
+**SOLUTION:** On average, college graduates consume the most total calories (2119.7), but individuals with a high school degree consume the most beer calories (77.7).
 
 # 4. Data Visualization
 
-**QUESTION 5:** Create a histogram of total caloric consumption by gender, using ggplot and facet_wrap with different colors.
+## Question 5
+
+Create a histogram of total caloric consumption by gender, using `ggplot()` and `facet_wrap()` with different colors.
+
 ```{r}
 library(ggplot2)
-# plot1 <- ggplot(data=??, mapping = aes(x=??, fill=??)) 
-# plot1 + geom_histogram(color="white") + facet_wrap(~ ??) 
+
+INNER %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = ALL_CALORIES, fill = GENDER), color = "white") +
+  labs(title = "Distribution of total caloric consumption by gender",
+       x = "Total caloric consumption",
+       y = "Count") +
+  scale_fill_manual(name = "Gender", values = c("#2774AE", "#FFD100")) +
+  facet_wrap(~ GENDER)
 ```
 
 # 5. Linear Regression Analysis
 
-**QUESTION 6:** Regress TOTAL calories on age, gender, and education using the INNER data. 
+## Question 6 
+
+Regress TOTAL calories on age, gender, and education using the INNER data. 
+
 ```{r}
-# reg1 <- lm(?? ~ ??, data = ??)
-# summary(reg1)
+library(jtools)
+
+reg1 <- lm(ALL_CALORIES ~ AGE + GENDER+ EDUCATION, data = INNER)
+
+summ(reg1)
 ```
 
-**QUESTION 7:** Regress BEER calories on age, gender, and education using the INNER data. 
+## Question 7
+
+Regress BEER calories on age, gender, and education using the INNER data.
+
 ```{r}
-# enter code
+reg2 <- lm(BEER_CALORIES ~ AGE + GENDER + EDUCATION, data = INNER)
+
+summ(reg2)
 ```
 
 Finally, let's use our regressions to make a prediction for a friend. We make a small dataframe called FRIEND and enter some input values for the regression.
+
 ```{r}
 FRIEND <- data.frame(
   AGE = 25,
@@ -97,12 +153,22 @@ FRIEND <- data.frame(
 )
 ```
 
-Then we enter this information into the predict() command. We can also obtain a 95% prediction interval.
+Then we enter this information into the `predict()` command. We can also obtain a 95% prediction interval.
+
 ```{r}
-# predict(reg1, newdata = FRIEND, interval = "prediction")
+predict(reg1, newdata = FRIEND, interval = "prediction")
 ```
 
-**QUESTION 8:** Your neighbor is an Instagram influencer who is 32, attended some college, and is female. What is her predicted calorie consumption?
+## Question 8
+
+Your neighbor is an Instagram influencer who is 32, attended some college, and is female. What is her predicted calorie consumption?
+
 ```{r}
-# enter code
+NEIGHBOR <- data.frame(
+  AGE = 32,
+  GENDER = "Female",
+  EDUCATION = "Some College"
+)
+
+predict(reg1, newdata = NEIGHBOR, interval = "prediction")
 ```
