@@ -9,7 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 ```
 
 # 1. Overview
@@ -35,7 +35,7 @@ It is important to think about how these variables may be related to medical exp
 
 # 3. Data Exploration
 
-Use read.csv() to load the insurance data for analysis. We add the option stringsAsFactors = TRUE to convert the 3 categorical variables to factors:
+Use `read.csv()` to load the insurance data for analysis. We add the option `stringsAsFactors = TRUE` to convert the 3 categorical variables to factors:
 
 ```{r}
 list.of.packages <- c("tidyverse", "ggrepel", "broom", "jtools", "ggplot2", "psych")
@@ -60,13 +60,13 @@ str(insurance)
 Our model's dependent variable is **expenses**, which measures the medical costs charged to the insurance plan for the year. Let's take a look at the summary statistics:
 
 ## Question 1 
-What are the mean and median medical expenses? What does this tell you about the distribution? Use the hist() function to plot a histogram.
+What are the mean and median medical expenses? What does this tell you about the distribution? Use the `hist()` function to plot a histogram.
 ```{r}
 mean(insurance$expenses)
 median(insurance$expenses)
 ```
 
-Because the mean is higher than the median, this means that the distribution is possibly skewed to the right. 
+Because the mean is higher than the median, the distribution is skewed to the right. 
 
 ```{r}
 insurance %>%
@@ -113,7 +113,7 @@ Because the p-value of 0.04 is lower than 0.05, the data are statistically signi
 We next use linear regression to examine the association between medical expenses and the independent variables.
 
 ## Question 6
-Run a simple linear regression on just age (let's name this regression "reg1"). Use the tidy() command from the broom package to format the output. What is your interpretation of the coefficient on age? Is this statistically significant at the 5% level?
+Run a simple linear regression on just age (let's name this regression "reg1"). Use the `tidy()` command from the broom package to format the output. What is your interpretation of the coefficient on age? Is this statistically significant at the 5% level?
 
 ```{r}
 reg1 <- lm(expenses ~ age, data = insurance)
@@ -136,7 +136,7 @@ Smokers appear to have higher medical expenses compared to nonsmokers, holding a
 The northwest region has the highest medical expenses compared to the other regions. 
 
 ## Question 8
-Use the summary() command to evaluate the model performance. What fraction of the variation in medical expenses is explained by variation in these 6 variables?
+Use the `summary()` command to evaluate the model performance. What fraction of the variation in medical expenses is explained by variation in these 6 variables?
 
 ```{r}
 summary(reg2)
