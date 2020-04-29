@@ -1,0 +1,108 @@
+---
+title: "Class 5: Some R fundamentals"
+subtitle: "Application: Caloric intake and demographics"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+# 1. Overview
+
+The goal of this analysis is to explore the relationship between total caloric intake, including beer consumption, and demographic factors. We will utilize some important R tools, including data importing, merging, summarizing by groups, and linear and log-linear regression.
+
+# 2. Data Collection and Merging
+ 
+We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset TOTAL_CALORIES was previously created using the NHANES datasets DR1IFF_I.XPT (on daily food consumption) and DRXFCD_I.XPT (on food codes) available at https://wwwn.cdc.gov/nchs/nhanes/Default.aspx.
+
+**DEMO** 
+* **SEQN:**          Survey respondant's sequence number
+* **AGE:**           Age of respondant (years)
+* **GENDER:**        Biological sex of respondant
+* **EDUCATION:**     Education level of respondant ("Less than High School", "High School", "Some College", "College Grad",)
+
+**TOTAL_CALORIES**
+* **SEQN:**          Survey respondant's sequence number
+* **ALL_CALORIES:**  Total calories consumed (food + drinks) by respondant in past 24 hours     
+* **BEER_CALORIES:** Calories consumed from beer in past 24 hours
+
+Let's save both files in a folder called NHANES. Then use read.csv() to load each dataset for analysis.
+```{r}
+library(readr)
+DEMO <- read.csv("NHANES/DEMO.csv")
+TOTAL_CALORIES <- read.csv("NHANES/TOTAL_CALORIES.csv")
+```
+
+**QUESTION 1:** After loading the dplyer library, use full_join() to merge the datasets using "SEQN" as the common link. Name this new dataset FULL. How many observations are in FULL?
+```{r}
+# enter code
+```
+**SOLUTION:** With full_join(), we have 9,207 observations.
+
+**QUESTION 2:** Use inner_join() to merge the datasets using "SEQN" as the common link. Name this new dataset INNER. How many observations are in INNER?
+```{r}
+# enter code
+```
+**SOLUTION:** With inner_join(), we have 5,017 observations.
+
+We will use INNER in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.
+
+# 3. Data Exploration
+
+Let's calculate the mean and standard deviation of TOTAL calories by gender using the following code:
+```{r}
+# tapply(INNER$ALL_CALORIES, INNER$GENDER, summary)
+```
+
+**QUESTION 3:** What are the mean BEER calories consumed by men and women?
+```{r}
+# enter code
+```
+**SOLUTION:** Men consume 92.4 beer calories and women consume 16.65 beer calories, on average.  
+
+**QUESTION 4:** Consumers with what education level consume the most TOTAL calories? And the most BEER calories?
+```{r}
+# enter code
+```
+**SOLUTION:** College graduates consume the most total calories, on average, but individuals with a high school degree consume the most beer calories, on average.
+
+
+# 4. Data Visualization
+
+**QUESTION 5:** Create a histogram of total caloric consumption by gender, using ggplot and facet_wrap with different colors.
+```{r}
+library(ggplot2)
+# plot1 <- ggplot(data=??, mapping = aes(x=??, fill=??)) 
+# plot1 + geom_histogram(color="white") + facet_wrap(~ ??) 
+```
+
+# 5. Linear Regression Analysis
+
+**QUESTION 6:** Regress TOTAL calories on age, gender, and education using the INNER data. 
+```{r}
+# reg1 <- lm(?? ~ ??, data = ??)
+# summary(reg1)
+```
+
+**QUESTION 7:** Regress BEER calories on age, gender, and education using the INNER data. 
+```{r}
+# enter code
+```
+
+Finally, let's use our regressions to make a prediction for a friend. We make a small dataframe called FRIEND and enter some input values for the regression.
+```{r}
+FRIEND <- data.frame(
+  AGE = 25,
+  GENDER = "Male",
+  EDUCATION = "College Grad"
+)
+```
+
+Then we enter this information into the predict() command. We can also obtain a 95% prediction interval.
+```{r}
+# predict(reg1, newdata = FRIEND, interval = "prediction")
+```
+
+**QUESTION 8:** Your neighbor is an Instagram influencer who is 32, attended some college, and is female. What is her predicted calorie consumption?
+```{r}
+# enter code
+```
