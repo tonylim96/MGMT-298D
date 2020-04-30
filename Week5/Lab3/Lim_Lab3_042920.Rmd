@@ -1,6 +1,6 @@
 ---
-title: "Week 5 R Fundamentals"
-subtitle: "Lab 3 Caloric Intake and Demographics"
+title: "Lab 3 Caloric Intake and Demographics"
+subtitle: "Week 5 R Fundamentals"
 author: "Tony Lim"
 output:
   html_document:

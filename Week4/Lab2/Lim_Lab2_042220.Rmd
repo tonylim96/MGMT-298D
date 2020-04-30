@@ -1,6 +1,6 @@
 ---
-title: "Week 4 Multiple Linear Regression"
-subtitle: "Lab 2 Socioeconomics and Exercise Behavior"
+title: "Lab 2 Socioeconomics and Exercise Behavior"
+subtitle: "Week 4 Multiple Linear Regression"
 author: "Tony Lim"
 output:
   html_document:
