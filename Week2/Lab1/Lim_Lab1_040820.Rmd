@@ -1,6 +1,6 @@
 ---
-title: "Week 2 Linear Regression"
-subtitle: "Lab 1 Predicting Health Insurance Expenses"
+title: "Lab 1 Predicting Health Insurance Expenses"
+subtitle: "Week 2 Linear Regression"
 author: "Tony Lim"
 output:
   html_document:
