@@ -25,7 +25,7 @@ We will use 2 datasets from the National Health and Nutrition Examination Survey
 * **SEQN:**          Survey respondant's sequence number
 * **AGE:**           Age of respondant (years)
 * **GENDER:**        Biological sex of respondant
-* **EDUCATION:**     Education level of respondant ("Less than High School", "High School", "Some College", "College Grad",)
+* **EDUCATION:**     Education level of respondant ("Less than High School", "High School", "Some College", "College Grad")
 
 **TOTAL_CALORIES**
 
@@ -34,12 +34,21 @@ We will use 2 datasets from the National Health and Nutrition Examination Survey
 * **BEER_CALORIES:** Calories consumed from beer in past 24 hours
 
 Use `read.csv()` to load each dataset for analysis.
-```{r}
+```{r message=F, warning=F}
 library(readr)
+library(dplyr)
+library(ggplot2)
+library(jtools)
+```
 
-DEMO <- read.csv("DEMO.csv")
+```{r}
+DEMO <- read_csv("DEMO.csv") %>% 
+  print(width = Inf)
+```
 
-TOTAL_CALORIES <- read.csv("TOTAL_CALORIES.csv")
+```{r}
+TOTAL_CALORIES <- read_csv("TOTAL_CALORIES.csv") %>%
+  print(width = Inf)
 ```
 
 ## Question 1
@@ -47,22 +56,22 @@ TOTAL_CALORIES <- read.csv("TOTAL_CALORIES.csv")
 After loading the dplyr library, use `full_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset FULL. How many observations are in FULL?
 
 ```{r}
-library(dplyr)
-
-FULL  <- full_join(DEMO, TOTAL_CALORIES, by = "SEQN")
+FULL  <- full_join(DEMO, TOTAL_CALORIES, by = "SEQN") %>%
+  print(width = Inf)
 ```
 
-**SOLUTION:** With `full_join()`, we have 9,207 observations.
+With `full_join()`, we have 9,207 observations.
 
 ## Question 2
 
 Use `inner_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset INNER. How many observations are in INNER?
 
 ```{r}
-INNER <- inner_join(DEMO, TOTAL_CALORIES, by = "SEQN")
+INNER <- inner_join(DEMO, TOTAL_CALORIES, by = "SEQN") %>%
+  print(width = Inf)
 ```
 
-**SOLUTION:** With `inner_join()`, we have 5,017 observations.
+With `inner_join()`, we have 5,017 observations.
 
 We will use INNER in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.
 
@@ -74,7 +83,6 @@ Let's calculate the mean and standard deviation of TOTAL calories by gender usin
 tapply(INNER$ALL_CALORIES, INNER$GENDER, mean)
 
 tapply(INNER$ALL_CALORIES, INNER$GENDER, sd)
-
 ```
 
 Women have an average total caloric consumption of 1799.3 with a standard deviation of 761.1. Men have an average total caloric consumption of 2373.9 with a standard deviation of 1039.3. 
@@ -82,14 +90,16 @@ Women have an average total caloric consumption of 1799.3 with a standard deviat
 ## Question 3
 
 What are the mean BEER calories consumed by men and women?
+
 ```{r}
-tapply(INNER$BEER, INNER$GENDER, mean)
+tapply(INNER$BEER_CALORIES, INNER$GENDER, mean)
 ```
-**SOLUTION:** On average, men consume 92.4 beer calories while women consume 16.6 beer calories.  
+On average, men consume 92.4 beer calories while women consume 16.6 beer calories.  
 
 ## Question 4
 
 Consumers with which education level consume the most TOTAL calories? And the most BEER calories?
+
 ```{r}
 tapply(INNER$ALL_CALORIES, INNER$EDUCATION, mean)
 ```
@@ -98,7 +108,7 @@ tapply(INNER$ALL_CALORIES, INNER$EDUCATION, mean)
 tapply(INNER$BEER_CALORIES, INNER$EDUCATION, mean)
 ```
 
-**SOLUTION:** On average, college graduates consume the most total calories (2119.7), but individuals with a high school degree consume the most beer calories (77.7).
+On average, college graduates consume the most total calories (2119.7), but individuals with a high school degree consume the most beer calories (77.7).
 
 # 4. Data Visualization
 
@@ -107,11 +117,11 @@ tapply(INNER$BEER_CALORIES, INNER$EDUCATION, mean)
 Create a histogram of total caloric consumption by gender, using `ggplot()` and `facet_wrap()` with different colors.
 
 ```{r}
-library(ggplot2)
-
 INNER %>%
   ggplot() +
-  geom_histogram(mapping = aes(x = ALL_CALORIES, fill = GENDER), color = "white") +
+  geom_histogram(mapping = aes(x = ALL_CALORIES, fill = GENDER), 
+                 color = "white",
+                 bins = 30) +
   labs(title = "Distribution of total caloric consumption by gender",
        x = "Total caloric consumption",
        y = "Count") +
@@ -126,8 +136,6 @@ INNER %>%
 Regress TOTAL calories on age, gender, and education using the INNER data. 
 
 ```{r}
-library(jtools)
-
 reg1 <- lm(ALL_CALORIES ~ AGE + GENDER+ EDUCATION, data = INNER)
 
 summ(reg1)
@@ -150,7 +158,7 @@ FRIEND <- data.frame(
   AGE = 25,
   GENDER = "Male",
   EDUCATION = "College Grad"
-)
+  )
 ```
 
 Then we enter this information into the `predict()` command. We can also obtain a 95% prediction interval.
@@ -168,7 +176,7 @@ NEIGHBOR <- data.frame(
   AGE = 32,
   GENDER = "Female",
   EDUCATION = "Some College"
-)
+  )
 
 predict(reg1, newdata = NEIGHBOR, interval = "prediction")
 ```
