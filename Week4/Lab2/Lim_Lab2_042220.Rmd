@@ -38,7 +38,7 @@ We will use the National Health and Nutrition Examination Survey (NHANES) for 3 
 
 Use `read.csv()` to load the NHANES data for analysis.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 list.of.packages <- c("tidyverse", "dplyr", "jtools", "foreign", "wesanderson")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -46,7 +46,12 @@ if(length(new.packages)) install.packages(new.packages)
 library(tidyverse)
 library(foreign)
 library(wesanderson)
+library(ggplot2)
+library(dplyr)
+library(jtools)
+```
 
+```{r}
 NHANES <- read.csv("NHANES.csv")
 str(NHANES)
 ```
@@ -66,13 +71,11 @@ NHANES[which.max(NHANES$HOURS_TOTAL), ]
 Next, let's create a histogram of hours exercised by race/ethnicity. We will use ggplot to create 4 subplots using `facet_wrap()` with different colors.
 
 ```{r}
-library(ggplot2)
-library(dplyr)
-library(jtools)
-
 NHANES %>%
   ggplot() +
-  geom_histogram(mapping = aes(x = HOURS_TOTAL, fill = RACE)) + 
+  geom_histogram(mapping = aes(x = HOURS_TOTAL, fill = RACE), 
+                 color = "white",
+                 bins = 30) + 
   labs(title = "Distribution of total hours exercised in the last 30 days by race",
        x = "Total hours exercised in the last 30 days",
        y = "Count") +
@@ -89,7 +92,9 @@ Create a new histogram plot with `binwidth = 2` and x-axes capped at 60 hours.
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = ifelse(HOURS_TOTAL > 60, 60, HOURS_TOTAL), 
-                               fill = RACE), binwidth = 2) + 
+                               fill = RACE), 
+                 color = "white",
+                 binwidth = 2) + 
   labs(title = "Adjusted distribution of total hours exercised in the last 30 days by race",
        x = "Total hours exercised in the last 30 days",
        y = "Count") +
@@ -102,12 +107,12 @@ NHANES %>%
 Plot a histogram of average intensity by income bracket. Use `binwidth = 0.5`, and you do not need to cap the x-axis.
 
 ```{r}
-inclab <- c("20-45K", "45-75K", "Above 75K", "Below 20K", "Refused", "Unsure", "NA")
-
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = INTENSITY_AVG, 
-                               fill = INCOME), binwidth = 0.5) + 
+                               fill = INCOME), 
+                 color = "white",
+                 binwidth = 0.5) + 
   labs(title = "Distribution of average intensity by income bracket",
        x = "Average intensity",
        y = "Count") +
@@ -126,7 +131,9 @@ Let's repeat this, but further divide by gender. Hint: use `facet_grid()` instea
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = INTENSITY_AVG, 
-                               fill = INCOME), binwidth = 0.5) + 
+                               fill = INCOME), 
+                 color = "white",
+                 binwidth = 0.5) + 
   labs(title = "Distribution of average intensity by income bracket and gender",
        x = "Average intensity",
        y = "Count") +
