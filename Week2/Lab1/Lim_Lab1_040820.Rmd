@@ -37,7 +37,7 @@ It is important to think about how these variables may be related to medical exp
 
 Use `read.csv()` to load the insurance data for analysis. We add the option `stringsAsFactors = TRUE` to convert the 3 categorical variables to factors:
 
-```{r}
+```{r, message=F, warning=F}
 list.of.packages <- c("tidyverse", "ggrepel", "broom", "jtools", "ggplot2", "psych")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -53,8 +53,8 @@ library(psych)
 
 
 ```{r}
-insurance <- read.csv("insurance.csv", stringsAsFactors = TRUE)
-str(insurance)
+insurance <- read_csv("insurance.csv") %>%
+  print(width = Inf)
 ```
 
 Our model's dependent variable is **expenses**, which measures the medical costs charged to the insurance plan for the year. Let's take a look at the summary statistics:
@@ -68,10 +68,13 @@ median(insurance$expenses)
 
 Because the mean is higher than the median, the distribution is skewed to the right. 
 
-```{r}
+```{r, comment = F, warning = F}
 insurance %>%
   ggplot() +
-  geom_histogram(mapping = aes(x = expenses), fill = "#2774AE") + 
+  geom_histogram(mapping = aes(x = expenses), 
+                 fill = "#2774AE", 
+                 color = "white",
+                 bins = 30) + 
   labs(title = "Distribution of medical expenses",
        x = "Medical expense ($)",
        y = "Count")
