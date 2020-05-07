@@ -1,0 +1,251 @@
+---
+title: "Lab 4 Evaluating HIV Outcomes Before and After Implementing the President’s Emergency Plan for AIDS Relief (PEPFAR) Using Difference-in-Differences"
+subtitle: "Week 6 Difference-in-difference"
+author: "Tony Lim"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, cache.lazy = FALSE)
+```
+
+# 1. Overview
+
+The goal of this analysis is to evaluate the impact of HIV aid assitance through the PEPFAR program on adult mortality. We will use a difference-in-difference technique, comparing morality before and after PEPFAR roll-out, in country aid recipients versus non-recipients. The results should replicate the paper "HIV Development Assistance and Adult Mortality in Africa" by Bendavid, Holmes, Bhattacharya, and Miller (JAMA 2012).
+
+# 2. Country-level Data
+ 
+Let's first examine a small dataset HIV_COUNTRY, which contains country-level characteristics by year for some key variables:
+
+* **CountryName:**     Full text of country
+* **Country:**         Country abbreviation
+* **Year:**            Year of data
+* **PepfarCountry:**   Dummy variable = 1 if country received PEPFAR aid
+* **Population:**      Country population in year 
+* **GDPcapita:**       GDP per capita   
+* **UrbanProp:**       Proportion living in urban locations
+* **HIVprev:**         Adult (15-49y old) HIV prevalence
+* **HIVaid:**          Total HIV aid (in USD)
+* **HIVaidcapita:**    HIV aid per capita
+* **HIVaidPerHIV:**    HIV aid per HIV-infected adult
+* **USHIVaid:**        HIV aid from US
+
+First, set your working directory and load the data file HIV_COUNTRY.RData
+
+```{r message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+load("HIV_COUNTRY.RData")
+
+HIV_COUNTRY %>%
+  print(width = Inf)
+```
+
+## Question 1
+
+Run a two-sample t-test to compare mean HIV prevalence in 1998 in PEPFAR countries and non-PEPFAR countries. We can restrict our sample to just 1998 by creating a new dataframe `Year1998`. What is mean HIV prevalence in each group? Is this statistically different?
+
+```{r}
+Year1998 <- HIV_COUNTRY[HIV_COUNTRY$Year == 1998, ]
+
+Year1998 %>%
+  group_by(PepfarCountry) %>%
+  summarise_at(vars(HIVprev),
+               list(avgHIVprev = mean))
+
+t.test(HIVprev ~ PepfarCountry, data = Year1998)
+```
+
+For the 1998 sample, the mean HIV prevalence for PEPFAR countries is 8.12 while non-PEPFAR countries has a mean HIV prevalence of 6.51. 
+
+The t-test had a p-value of 0.53, which is lower than 0.05. Therefore, the data are not signficant, and we fail to reject the null hypothesis that states the mean HIV prelvance between PEPFAR and non-PEPFARE countries are equal 
+
+## Question 2
+
+Does mean HIV aid differ between PEPFAR countries and non-PEPFAR countries in 1998? What about in 2008?
+
+```{r}
+Year1998 %>%
+  group_by(PepfarCountry) %>%
+  summarise_at(vars(HIVaid),
+               list(avgHIVaid = mean))
+
+t.test(HIVaid ~ PepfarCountry, data = Year1998)
+```
+
+For 1998, the p-value for the t-test between PEPFAR and Non-PEPFAR countries is 0.1016, which is greater than 0.05. Therefore, the data are not statistically significant, so we fail to reject the null hypothesis. Therefore, mean HIV aid does not differ between PEPFAR and non-PEPFAR countries in 1998.
+
+```{r}
+Year2008 <- HIV_COUNTRY %>%
+  filter(Year == 2008) 
+
+Year2008 %>%
+  group_by(PepfarCountry) %>%
+  summarise_at(vars(HIVaid),
+               list(avgHIVaid = mean))
+
+t.test(HIVaid ~ PepfarCountry, data = Year2008)
+```
+
+For 2008, the p-value for the t-test between PEPFAR and Non-PEPFAR countries is 0.00009, which is lower than 0.05. Therefore, the data are statistically significant, so we do reject the null hypothesis. Therefore, mean HIV aid does differ between PEPFAR and non-PEPFAR countries in 2008.
+
+## Question 3
+
+Replicate Figure 1 in Bendavid et al, which shows average US aid, by year, for PEPFAR and non-PEPFAR countries. The vertical error bars represent the 95% confidence intervals. We first need to convert the PepfarCountry dummy variable into a factor variable.
+
+```{r}
+HIV_COUNTRY$PepfarCountry <- as.factor(HIV_COUNTRY$PepfarCountry)
+
+HIV_COUNTRY %>%
+  ggplot(aes(x = Year, y = USHIVaid, group = PepfarCountry, color = PepfarCountry)) + 
+  stat_summary(fun = mean) +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") + 
+  scale_x_continuous(breaks = c(1998:2008)) +
+  scale_y_continuous(labels = scales::unit_format(unit = "M", scale = 1e-6)) +
+  labs(title = "Average US aid by year for PEPFAR and non-PEPFAR countries", 
+       subtitle = "1998-2008",
+       x = "Year",
+       y = "US HIV Aid ($)") +
+  scale_color_manual(name = "", 
+                     labels = c("PEPFAR", "Non-PEPFAR"), 
+                     values = c("#FFD100", "#2774AE"))
+```
+
+# 3. Individual-level Survey Data
+
+Next, let's look at the dataset SURVEY, which contains individual-level information from the Demographic and Health Surveys (DHS) in low- and middle-income countries from 1998 to 2010. Within each household survey, women aged 15-49 were interviewed about her family's health and mortality, including her adult siblings. The survey also asked longitidunal questions (e.g,. In what year did your brother die?)
+
+* **UniqueID:**        Unique ID of survey participant
+* **Siblings:**        Number of siblings reported by survey participant
+* **SiblingID:**       Unique ID of each sibling  
+* **Year:**            Year of interest
+* **Dead:**            Dummy variable for whether a specific sibling died (=1) in year of interest
+
+I saved you a step and already merged on the HIV_COUNTRY data from before. Load the data file SURVEY.RData. Note, this is a big file (almost 9 million observations) so it may take ~30 seconds to load.
+
+```{r}
+load("SURVEY.RData")
+
+SURVEY %>%
+  print(width = Inf)
+```
+
+## Question 4
+
+Create 2 new variables:
+
+* **PepfarOn:**      Dummy variable =1 if year is 2004 or later (PEPFAR is implemented)
+* **Interaction:**   Interaction term (product of PepfarOn and PepfarCountry)
+
+```{r}
+SURVEY <- SURVEY %>%
+  mutate(PepfarOn = ifelse(Year >= 2004, 1, 0))
+
+SURVEY <- SURVEY %>%
+  mutate(Interaction = PepfarOn * PepfarCountry)
+
+SURVEY %>%
+  print(width = Inf)
+```
+
+Convert PepfarCountry, CountryName, PepfarOn, Interaction, and Year to factor variables.
+
+```{r}
+SURVEY$PepfarCountry <- as.factor(SURVEY$PepfarCountry)
+SURVEY$CountryName <- as.factor(SURVEY$CountryName)
+SURVEY$PepfarOn <- as.factor(SURVEY$PepfarOn)
+SURVEY$Interaction <- as.factor(SURVEY$Interaction)
+SURVEY$Year <- as.factor(SURVEY$Year)
+```
+
+Notice how long it takes to generate these variables. Since our dataset is so large, we are going to select a random sample and run the regression just on this. We use set.seed() to set the initial value so the random numbers are always the same (if you remove this, you get a different sample every time). Then we generate 500,000 random numbers between 1 and nrow(SURVEY), the number of rows in the original dataset. We create a new dataset called SURVEY_SAMPLE.
+
+```{r}
+set.seed(99)
+index <- sample(1:nrow(SURVEY), 500000)
+SURVEY_SAMPLE <- SURVEY[index, ]
+
+SURVEY_SAMPLE %>%
+  print(width = Inf)
+```
+
+## Question 5 
+
+Run a logistic regression with Dead as the outcome variable, and Interaction, CountryName and Year as independent variables. Using the SURVEY_SAMPLE dataset, this should run in ~30 seconds, depending on your computer's RAM. The full dataset would take much longer to run. 
+
+```{r}
+reg1 <- glm(Dead ~ Interaction + CountryName + Year, data = SURVEY_SAMPLE, family = "binomial")
+
+summary(reg1)
+```
+
+What is the odds ratio for Interaction? How do you interpret this? Note, you can skip the confidence interval because the standard errors will have changed with the smaller sample.
+
+```{r}
+exp(coef(reg1))
+```
+
+The odds ratio for Interaction is 0.79. This means that PEPFAR aid causally reduces mortality by 21% (1 - 0.79) in PEPFAR countries compared to non-PEPFAR countries. 
+
+## Question 6
+
+Run the same logistic regression, adding country characteristics (HIVprev, GDPcapita, GovEffectiveness, HIVaidcapita). What is the odds ratio for Interaction?
+
+```{r}
+reg2 <- glm(Dead ~ Interaction + CountryName + Year + HIVprev + GDPcapita + GovEffectiveness + HIVaidcapita, data=SURVEY_SAMPLE, family="binomial")
+
+summary(reg2)
+```
+
+```{r}
+exp(coef(reg2))
+```
+
+The odds ratio is 0.82. This means that PEPFAR aid causally reduces mortality by 18% (1 - 0.82) in PEPFAR countries compared to non-PEPFAR countries.
+
+# Bonus
+
+Plot adult mortality US aid, by year, for PEPFAR and non-PEPFAR countries (similar to Figure 2 in Bendavid et al). You can ignore any age-adjusting and just plot average mortality. You can use the full dataset, but it may take a few minutes to generate the plot. Be sure to convert the factor variable Year back to a numeric value.
+
+```{r}
+# SURVEY_SAMPLE$Year <- as.numeric(SURVEY_SAMPLE$Year)
+# 
+# SURVEY_SAMPLE %>%
+#   ggplot(aes(x = Year, y = Dead * 1000, group = PepfarCountry, color = PepfarCountry)) +
+#   stat_summary(fun = mean) +
+#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+#   scale_x_continuous(breaks = c(1:11),
+#                      labels = c(1998:2008)) +
+#   labs(title = "Average mortality by year for PEPFAR and non-PEPFAR countries",
+#        subtitle = "1998-2008",
+#        x = "Year",
+#        y = "Average mortality per 1000 adults") +
+#   scale_color_manual(name = "",
+#                      labels = c("PEPFAR", "Non-PEPFAR"),
+#                      values = c("#FFD100", "#2774AE"))
+```
+
+```{r}
+SURVEY$Year <- as.numeric(SURVEY$Year)
+
+SURVEY %>%
+  ggplot(aes(x = Year, y = Dead * 1000, group = PepfarCountry, color = PepfarCountry)) +
+  stat_summary(fun = mean) +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  scale_x_continuous(breaks = c(1:11),
+                     labels = c(1998:2008)) +
+  labs(title = "Average mortality by year for PEPFAR and non-PEPFAR countries",
+       subtitle = "1998-2008",
+       x = "Year",
+       y = "Average mortality per 1000 adults") +
+  scale_color_manual(name = "",
+                     labels = c("PEPFAR", "Non-PEPFAR"),
+                     values = c("#FFD100", "#2774AE"))
+```
