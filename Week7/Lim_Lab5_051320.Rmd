@@ -1,0 +1,149 @@
+---
+title: "Predicting Cardiovascular Health Outcomes Using Logistic Regression (Framingham Heart Study)"
+subtitle: "Class 7 Classification with Logistic Regression"
+author: "Tony Lim"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, cache.lazy = FALSE)
+```
+
+# 1. Overview
+
+The goal of this analysis is to develop a classification model with logistic regression to predict the 10-year risk of coronary heart disease (CHD) using the Framingham Study dataset.
+
+Load the data file framingham.csv and convert Education to a factor variable.
+```{r}
+FRAMINGHAM <- read.csv("framingham.csv")
+FRAMINGHAM$Education = as.factor(FRAMINGHAM$Education)
+```
+
+Install any necessary packages.
+```{r, message=FALSE, warning=FALSE}
+list.of.packages <- c("caTools", "ROCR")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(caTools)
+library(ROCR)
+```
+
+
+# 2. Data Summary
+ 
+Let's examine the Framingham dataset, which contains the following variables for each study participant:
+
+**Outcome **
+
+* **TenYearCHD:**      patient has coronary heart disease (CHD) diagnosed within 10 years (1) or not (0)
+
+**Demographics **
+
+* **Male:**            sex of patient (1 if male, 0 if female)
+* **Age:**             age in years at first examination
+* **Education:**       some high school (1), high school/GED (2), some college/vocational school (3), college grad (4)
+
+**Behavioral risk factors**
+
+* **Smoker:**          whether patient currently smokes (1) or not (0)
+* **CigsPerDay:**      how many cigarettes smoked per day
+
+**Medical history risk factors**
+
+* **BPMeds:**          on blood pressure medication (1) or not (0) 
+* **Stroke:**          has patient previously had stroke (1) or not (0)
+* **Hyper:**           does patient currently have hypertension (1) or not (0)
+* **Diabetes:**        does patient currently have diabetes (1) or not (0)
+
+**Risk factors from first examination**
+
+* **TotChol:**         total cholesterol (mg / dL)
+* **SysBP:**           systolic blood pressure
+* **DiaBP:**           diastolic blood pressure
+* **BMI:**             body mass index (weight / height^2)
+* **HeartRate:**       heart rate (beats per minute)
+* **Glucose:**         blood glucose level (mg / dL)
+
+
+
+## Question 1
+
+How many patients are included in the dataset? How many experienced CHD?
+
+```{r}
+# enter code
+```
+
+# 3. Training the Model
+
+## Question 2
+
+Split the dataset into training and test datasets, with 65% as training. We will first set the same seed.
+```{r}
+# library(caTools)
+# set.seed(88)
+# split <- ??
+# TRAIN <- ??
+# TEST <- ??
+```
+
+## Question 3
+
+Run a logistic regression with TenYearCHD as the dependent variable, and include all others as independent variables. Examine the odds ratios and confidence intervals. Which variables increase the risk of CHD and are statistically significant at 5%?
+
+```{r}
+# LogitCHD <- glm( ??? )
+# summary(LogitCHD)
+# exp(cbind(OR = coef(LogitCHD), confint(LogitCHD)))
+```
+
+# 4. Testing the Model
+
+## Question 4
+
+Using the test dataset, predict the probability of 10-year CHD. This will be stored as a new data array called PredictCHD.
+```{r}
+# PredictCHD <- predict(??, newdata = ??, type = "response")
+```
+
+## Question 5
+
+In the training data, which outcome for TenYearCHD is most likely? Suppose we use this outcome as our prediction in a baseline model. What is the accuracy of a baseline model? Hint: use the table() function to see raw observation counts.
+
+```{r}
+# enter code
+```
+
+## Question 6
+
+Generate a confusion matrix, assuming a probability threshold of 0.5. What is the accuracy of the model using the test dataset? 
+
+```{r}
+# confusion <- table(??, PredictCHD > 0.5)
+# confusion
+
+# accuracy <- ??
+# accuracy
+```
+
+## Question 7
+
+Plot an ROC curve and report the area-under-the-curve (AUC).
+
+```{r}
+library(ROCR)
+# ROCpred <- prediction(??, ??)
+# ROCperf <- performance(ROCpred, "tpr", "fpr")
+# plot(ROCperf, main = "Receiver Operator Characteristic Curve", 
+#     colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
+
+```
+
+```{r}
+# AUC = as.numeric(performance(ROCpred, "auc")@y.values)
+# AUC
+```
