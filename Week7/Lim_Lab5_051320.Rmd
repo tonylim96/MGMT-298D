@@ -1,5 +1,5 @@
 ---
-title: "Predicting Cardiovascular Health Outcomes Using Logistic Regression (Framingham Heart Study)"
+title: "Lab 5 Predicting Cardiovascular Health Outcomes Using Logistic Regression"
 subtitle: "Class 7 Classification with Logistic Regression"
 author: "Tony Lim"
 output:
@@ -9,57 +9,58 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE, cache.lazy = FALSE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 
 # 1. Overview
 
-The goal of this analysis is to develop a classification model with logistic regression to predict the 10-year risk of coronary heart disease (CHD) using the Framingham Study dataset.
-
-Load the data file framingham.csv and convert Education to a factor variable.
-```{r}
-FRAMINGHAM <- read.csv("framingham.csv")
-FRAMINGHAM$Education = as.factor(FRAMINGHAM$Education)
-```
+The goal of this analysis is to develop a classification model with logistic regression to predict the 10-year risk of coronary heart disease (CHD) using the [Framingham Heart Study dataset](https://www.kaggle.com/amanajmera1/framingham-heart-study-dataset).
 
 Install any necessary packages.
 ```{r, message=FALSE, warning=FALSE}
-list.of.packages <- c("caTools", "ROCR")
+list.of.packages <- c("caTools", "ROCR", "dplyr", "tidyverse")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
 library(caTools)
 library(ROCR)
+library(dplyr)
+library(tidyverse)
 ```
 
+Load the data file framingham.csv and convert `Education` to a factor variable.
+```{r}
+FRAMINGHAM <- read_csv("framingham.csv")
+FRAMINGHAM$Education = as.factor(FRAMINGHAM$Education)
+```
 
 # 2. Data Summary
  
 Let's examine the Framingham dataset, which contains the following variables for each study participant:
 
-**Outcome **
+<span style="color: blue;">**Outcome **</span>
 
 * **TenYearCHD:**      patient has coronary heart disease (CHD) diagnosed within 10 years (1) or not (0)
 
-**Demographics **
+<span style="color: blue;">**Demographics **</span>
 
 * **Male:**            sex of patient (1 if male, 0 if female)
 * **Age:**             age in years at first examination
 * **Education:**       some high school (1), high school/GED (2), some college/vocational school (3), college grad (4)
 
-**Behavioral risk factors**
+<span style="color: blue;">**Behavioral risk factors**</span>
 
 * **Smoker:**          whether patient currently smokes (1) or not (0)
 * **CigsPerDay:**      how many cigarettes smoked per day
 
-**Medical history risk factors**
+<span style="color: blue;">**Medical history risk factors**</span>
 
 * **BPMeds:**          on blood pressure medication (1) or not (0) 
 * **Stroke:**          has patient previously had stroke (1) or not (0)
 * **Hyper:**           does patient currently have hypertension (1) or not (0)
 * **Diabetes:**        does patient currently have diabetes (1) or not (0)
 
-**Risk factors from first examination**
+<span style="color: blue;">**Risk factors from first examination**</span>
 
 * **TotChol:**         total cholesterol (mg / dL)
 * **SysBP:**           systolic blood pressure
@@ -68,82 +69,127 @@ Let's examine the Framingham dataset, which contains the following variables for
 * **HeartRate:**       heart rate (beats per minute)
 * **Glucose:**         blood glucose level (mg / dL)
 
-
-
 ## Question 1
 
 How many patients are included in the dataset? How many experienced CHD?
 
 ```{r}
-# enter code
+FRAMINGHAM %>% 
+  print(width = Inf)
 ```
+
+There are 3,658 patients in the `FRAMINGHAM` dataset.
+
+```{r}
+FRAMINGHAM %>%
+  group_by(TenYearCHD) %>%
+  count()
+```
+
+557 patients experienced CHD. 
 
 # 3. Training the Model
 
 ## Question 2
 
 Split the dataset into training and test datasets, with 65% as training. We will first set the same seed.
+```{r, message=FALSE, warning=FALSE}
+set.seed(88)
+
+split <- sample.split(FRAMINGHAM$TenYearCHD, SplitRatio = 0.65)
+```
+
 ```{r}
-# library(caTools)
-# set.seed(88)
-# split <- ??
-# TRAIN <- ??
-# TEST <- ??
+TRAIN <- FRAMINGHAM[split, ]
+nrow(TRAIN)
+
+TEST <- FRAMINGHAM[!split, ]
+nrow(TEST)
 ```
 
 ## Question 3
 
-Run a logistic regression with TenYearCHD as the dependent variable, and include all others as independent variables. Examine the odds ratios and confidence intervals. Which variables increase the risk of CHD and are statistically significant at 5%?
+Run a logistic regression with `TenYearCHD` as the dependent variable and include all others as independent variables. Examine the odds ratios and confidence intervals. Which variables increase the risk of CHD and are statistically significant at 5%?
 
 ```{r}
-# LogitCHD <- glm( ??? )
-# summary(LogitCHD)
-# exp(cbind(OR = coef(LogitCHD), confint(LogitCHD)))
+logitCHD <- glm(TenYearCHD ~ ., 
+                data = TRAIN, 
+                family = "binomial")
+
+summary(logitCHD)
 ```
+
+```{r, message = FALSE, warning = FALSE}
+exp(cbind(OR = coef(logitCHD), confint(logitCHD)))
+```
+
+The patient's sex, age, number of cigarettes smoked per day, hypertension status, systolic blood pressure, and blood glucose levels are variables that increase the risk of CHD and are statistically significant at the 5% level.
 
 # 4. Testing the Model
 
 ## Question 4
 
-Using the test dataset, predict the probability of 10-year CHD. This will be stored as a new data array called PredictCHD.
+Using the `TEST` dataset, predict the probability of 10-year CHD. This will be stored as a new data array called `predictCHD.`
+
 ```{r}
-# PredictCHD <- predict(??, newdata = ??, type = "response")
+predictCHD <- predict(logitCHD, newdata = TEST, type = "response")
 ```
 
 ## Question 5
 
-In the training data, which outcome for TenYearCHD is most likely? Suppose we use this outcome as our prediction in a baseline model. What is the accuracy of a baseline model? Hint: use the table() function to see raw observation counts.
+In the `TRAIN` data, which outcome for `TenYearCHD` is most likely? Suppose we use this outcome as our prediction in a baseline model. What is the accuracy of a baseline model? Hint: use the `table()` function to see raw observation counts.
 
 ```{r}
-# enter code
+table(TRAIN$TenYearCHD)
 ```
+
+In the `TRAIN` dataset, the most likely outcome for `TenYearCHD` is not having CHD (2,016 patients).
+
+```{r}
+table(TEST$TenYearCHD)
+```
+
+```{r}
+1085 / (1085 + 195)
+```
+
+Therefore, if we used this outcome as our prediction in a baseline model, we get an accuracy of 84.8%. 
 
 ## Question 6
 
-Generate a confusion matrix, assuming a probability threshold of 0.5. What is the accuracy of the model using the test dataset? 
+Generate a confusion matrix, assuming a probability threshold of 0.5. What is the accuracy of the model using the `TEST` dataset? 
 
 ```{r}
-# confusion <- table(??, PredictCHD > 0.5)
-# confusion
-
-# accuracy <- ??
-# accuracy
+confusion <- table(TEST$TenYearCHD, predictCHD > 0.5)
+confusion
 ```
+
+```{r}
+accuracy <- sum(diag(confusion)) / nrow(TEST)
+accuracy
+```
+
+The accuracy of the model using the `TEST` dataset is 85.1%. 
 
 ## Question 7
 
-Plot an ROC curve and report the area-under-the-curve (AUC).
+Plot an ROC curve, and report the area under the curve (AUC).
 
 ```{r}
-library(ROCR)
-# ROCpred <- prediction(??, ??)
-# ROCperf <- performance(ROCpred, "tpr", "fpr")
-# plot(ROCperf, main = "Receiver Operator Characteristic Curve", 
-#     colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
+ROCpred <- prediction(predictCHD, TEST$TenYearCHD)
+ROCperf <- performance(ROCpred, "tpr", "fpr")
 
+plot(ROCperf, 
+     main = "Receiver Operator Characteristic (ROC) Curve",
+     colorize = TRUE, 
+     print.cutoffs.at = seq(0, 1, by = 0.1), 
+     text.adj = c(-0.2, 1.7))
+lines(x = c(0, 1), y = c(0, 1), col = "gray", lty = "dashed", lwd = 1)
 ```
 
 ```{r}
-# AUC = as.numeric(performance(ROCpred, "auc")@y.values)
-# AUC
+AUC = as.numeric(performance(ROCpred, "auc")@y.values)
+AUC
 ```
+
+The dashed line or line of no-discrimination represents random chance (AUC = 0.50). For our model, the AUC is about 0.71, so it does better than random chance. Generally, an AUC of 0.70 to 0.80 is considered acceptable. Therefore, our model based on the logistic regression predicts relatively well which patient will have CHD given the other variables.
