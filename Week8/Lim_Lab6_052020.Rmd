@@ -1,0 +1,213 @@
+---
+title: "Lab 6 Estimating the Reduction in At-Risk Infant Mortality Attributable to NICU Care Using a Regression Discontinuity Design"
+subtitle: "Class 8 Regression Discontinuity"
+author: "Tony Lim"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = FALSE)
+```
+
+# Overview
+
+The goal of this analysis is to estimate the reduction in mortality attributable to care in the neonatal intensive care unit (NICU), using a regression discontinuity design. We will aim to replicate the main results from the paper ["Estimating marginal returns to medical care: evidence from at-risk newborns" by Almond, Doyle, Kowalski and Williams (Quarterly Journal of Economics, 2010)](https://academic.oup.com/qje/article/125/2/591/1882183).
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(jtools)
+library(tidyverse)
+```
+
+Load the data file `NICU.csv`. Next, we will adjust an R setting so the results display in decimal format (e.g., 0.00123) instead of scientific notation (1.23e-3).
+
+```{r}
+NICU <- read_csv("NICU.csv")
+
+options("scipen" = 100, "digits" = 3)
+```
+
+
+# Data Summary
+ 
+The full dataset includes U.S. births between 1983 and 2002 (approximately 66 million births). For this analysis, we use a sub-sample of at-risk newborns: those with birth weights within 85g (3 oz) of the 1500g (3 lbs, 5 oz) cut-off for NICU care. The dataset contains the following variables for each newborn baby:
+
+* **GestAge:**    gestational age of newborn in weeks
+* **Weight:**     birth weight in grams
+* **Death:**      death within one year of birth (1 = death, 0 = no death)
+
+
+## Question 1
+
+How many births are included in the dataset? What is the average gestational age and birth weight? What is the mortality rate within 1 year of birth?
+```{r}
+NICU %>%
+  print(width = Inf)
+```
+
+There are 194,803 births included in the dataset.
+
+```{r}
+sapply(NICU, mean, na.rm = T)
+```
+
+The average gestational age is 32.2 weeks, and the average birth weight is 1494.8 grams. The mortality rate within 1 year of birth is 0.0567 or 5.67 deaths per 100 births. 
+
+## Question 2
+
+Create a dummy variable called `VLBW` (very low birth weight) for newborns with weight below 1500g. Create an interaction variable called `Below`, which equals `VLBW` x (`Weight` - 1500). Create another interaction variable called `Above`, which equals (1 - `VLBW`) x (`Weight` - 1500). 
+
+```{r}
+NICU <- NICU %>%
+  mutate(VLBW = ifelse(Weight < 1500, 1, 0), 
+         Below = VLBW * (Weight - 1500),
+         Above = (1 - VLBW) * (Weight - 1500))
+
+NICU %>%
+  print(width = Inf)
+```
+
+# Data Visualization
+
+Here, we will review how to create histograms and scatterplots. Note, you can adjust the bar fill and outline color as you like. Here's a link to many built-in colors in R: 
+http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+
+## Question 3
+
+Plot a histogram of birth weight in grams, setting the binwidth to 10 grams. What do you think is going on here? 
+
+```{r}
+NICU %>%
+  ggplot(mapping = aes(x = Weight)) + 
+  geom_histogram(fill = "#FF0000",
+                 color = "white",
+                 binwidth = 10) + 
+  labs(title = "Distribution of birth weight",
+       x = "Birth weight (g)",
+       y = "Count")
+```
+
+There are peaks at birth weights that are multiples of around 28 grams. This may have occurred because nurses or health professionals rounded to a nice, even birth weight in ounces, and an ounce is about 28 grams. 
+
+## Question 4
+
+Convert birth weight to ounces, by dividing the weight in grams by 28.34952. Plot another histogram of birth weight in ounces, setting the binwidth to 0.1 ounces. Now, what might explain this pattern?
+
+```{r}
+NICU %>%
+  ggplot(mapping = aes(x = Weight / 28.34952)) + 
+  geom_histogram(fill = "#00A08A",
+                 color = "white",
+                 binwidth = 0.1) + 
+  labs(title = "Distribution of birth weight",
+       x = "Birth weight (oz)",
+       y = "Count") +
+  scale_x_continuous(breaks = seq(50, 56, 1))
+```
+
+There are peaks at birth weights that are integers of ounces. This may have occurred because nurses or health professionals rounded to a nice, even integer birth weight in ounces.
+
+# Smooth Covariates
+
+For an RD analysis to be sound, we should verify that other covariates are not "jumping" at the 1500g cut-off. For example, if gestational age (a measure of a newborn's health) also jumps at 1500g, we might worry that birth weights are being manipulated so as to allow certain babies (e.g., premature) access to the NICU.
+
+## Question 5
+
+Create a scatterplot of each newborn's gestational age (y-axis) versus birth weight (x-axis). You can play around with different colors too.
+
+```{r}
+NICU %>%
+  ggplot(mapping = aes(x = Weight, y = GestAge)) + 
+  geom_point(color = "#F2AD00") +
+  labs(title = "Scatterplot of gestational age vs. birth weight",
+       x = "Birth weight (g)",
+       y = "Gestational age (weeks)")
+```
+
+The previous graph is hard to interpret because we have so many data points. Instead, let's group newborns by `Weight` (in grams) and calculate the *average* gestational age. We will use the "pipe" operator %>% which passes the dataframe `NICU` to the next line. This will create a new smaller dataframe called `AGE`. Next, create a new scatterplot of the *average* gestational age (y-axis) versus birth weight (x-axis). 
+
+Does this appear smooth at the 1500g cut-off? Are gestational age and birth weight positively or negatively correlated? Does that make intuitive sense?
+
+```{r}
+AGE <- NICU %>%
+ group_by(Weight) %>%
+ summarise(MeanGestAge = mean(GestAge))
+
+AGE %>%
+  ggplot(mapping = aes(x = Weight, y = MeanGestAge)) +
+  geom_point(color = "#F98400") + 
+  labs(title = "Scatterplot of average gestational age vs. birth weight",
+       x = "Birth weight (g)",
+       y = "Average gestational age (weeks)")
+```
+
+The graph appears smooth at the 1500g cut-off. Gestational age and birth weight are positively correlated, which make sense since more time spent in the womb means more fetal growth, resulting in a higher birth weight. 
+
+# Regression Discontinuity
+
+## Question 6
+
+Run a linear regression with Death as the dependent variable, and your 3 new variables as independent variables. What is the graphical interpretation of each coefficient?
+
+```{r}
+reg1 <- glm(Death ~ VLBW + Below + Above, data = NICU)
+
+summary(reg1)
+```
+
+The coefficient estimate for VLBW is -0.009, meaning that babies who have very low birth weights (< 1500 g) have almost a 1% decrease in mortality rate compared to babies weighing >= 1500g since VLBW babies are transferred to the NICU. 
+
+The coefficient estimate for Below is -0.000146, so increasing the birth weight by one gram will decrease the mortality rate by 0.0146% for babies above 1500g.
+
+The coefficient estimate for Above is -0.000202, so increasing the birth weight by one gram will decrease the mortality rate by 0.0202% for babies below 1500g.
+
+Let's plot the mortality rate by weight. First, we will create 1-ounce bins and then plot the mortality rate by bin
+
+```{r}
+NICU$WeightBin <- round(NICU$Weight / 28.34952)
+
+MORTALITY <- NICU %>%
+ group_by(WeightBin) %>%
+ summarise(MortalityRate = mean(Death))
+
+MORTALITY %>%
+  ggplot(mapping = aes(x = WeightBin, y = MortalityRate)) + 
+  geom_point(color = "#5BBCD6") +
+  labs(title = "Regression discontinuity of mortality rate vs. birth weight",
+       x = "Birth weight (oz)",
+       y = "Mortality rate") + 
+  scale_x_continuous(breaks = seq(50, 56, 1))
+```
+
+Let's convert back to grams and add a vertical line at 1500g. This is similar to Figure 2a in the paper.
+
+```{r}
+MORTALITY %>%
+  ggplot(mapping = aes(x = WeightBin * 28.34952, y = MortalityRate)) +
+  geom_point(color = "#046C9A") + 
+  labs(title = "Regression discontinuity of mortality rate vs. birth weight",
+       x = "Birth weight (g)",
+       y = "Mortality rate") +
+  scale_x_continuous(breaks = seq(1400, 1600, 25)) + 
+  geom_vline(xintercept = 1500, lty = "dashed", color = "darkgray")
+```
+
+## Question 7
+
+Another way to help understand these results is to calculate the predicted mortality rate for newborns just above and below the 1500g cut-off for NICU care. Let's create a new dataframe called NEWBORNS and enter each variable value for newborns weighing 1499g or 1501g. Then plug this into the `predict()` function to obtain a predicted mortality rate and 95% confidence interval.
+
+```{r}
+NEWBORNS <- data.frame(
+ Weight = c(1499, 1501),
+ VLBW = c(1, 0),
+ Below = c(-1, 0),
+ Above = c(0, 1))
+
+predict(reg1, newdata = NEWBORNS, interval = "confidence")
+```
+
+With 95% confidence, babies born between 1499g and 1501g have a mortality rate between 5.24% and 6.11%. Therefore, NICU care reduces mortality rate from around 6% to about 5% for newborns with very low birth weights around 1500g. However, this is localized and cannot be exrapolated to average weight newborns. 
