@@ -1,0 +1,92 @@
+---
+title: "Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Source: https://www.kaggle.com/unsdsn/world-happiness
+
+```{r}
+install.packages("corrplot")
+
+library(corrplot)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+happiness <- read_csv("Happiness.csv")
+
+happiness %>% 
+  print(width = Inf)
+```
+
+```{r}
+happiness %>%
+  group_by(Country) %>%
+  arrange(Country, Year)
+
+reg1 <- 
+```
+
+
+```{r}
+whr19 <- read_csv("2019.csv")
+
+whr19 %>%
+  print(width = Inf)
+```
+
+```{r}
+M <- whr19 %>%
+  select(`Score`:`Perceptions of corruption`)
+
+M <- cor(M, use = "everything", method = "pearson")
+
+corrplot(M, method = "color")
+
+```
+
+Source: https://data.chhs.ca.gov/dataset/school-immunizations-in-kindergarten-by-academic-year
+
+```{r}
+imm <- read.csv("CA_Immunizations.csv")
+str(imm)
+
+imm %>%
+  print(width = Inf)
+```
+
+```{r}
+imm %>%
+  distinct(SCHOOL_YEAR)
+
+imm %>%
+  filter(COUNTY == "LOS ANGELES")
+
+(utd <- imm %>% 
+  filter(CATEGORY == "Up-To-Date" & !is.na(PERCENT) & COUNTY == "LOS ANGELES"))
+
+utd
+
+
+summary(reg1)
+
+
+
+imm %>%
+  plyr::count("COUNTY") %>%
+  arrange(desc(freq)) %>%
+  filter(rank(desc(freq)) < 11) %>%
+  ggplot(mapping = aes(x = reorder(COUNTY, freq), y = freq)) + 
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+imm %>%
+  ggplot(mapping = aes(x = PUBLIC_PRIVATE)) +
+  geom_bar()
+```
+
