@@ -1,0 +1,101 @@
+---
+title: "Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Source: https://www.kaggle.com/unsdsn/world-happiness
+
+```{r}
+install.packages("corrplot")
+
+library(corrplot)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+happiness <- read_csv("Happiness.csv")
+
+happiness %>% 
+  print(width = Inf)
+```
+
+```{r}
+happiness <- happiness %>%
+  rename(`Rank` = `Happiness Rank`,
+         `Score` = `Happiness Score`,
+         `Economy` = `Economy (GDP per Capita)`,
+         `Health` = `Health (Life Expectancy)`,
+         `Trust` = `Trust (Government Corruption)`,
+         `Dystopia` = `Dystopia Residual`)
+
+happiness$Trust <- as.double(happiness$Trust)
+
+happiness
+```
+
+```{r}
+happiness %>%
+  plyr::count("Region") %>%
+  arrange(desc(freq)) %>%
+  ggplot() +
+  geom_bar(mapping = aes(x = reorder(Region, freq), y = freq), stat = "identity") +
+  coord_flip() + 
+  labs(title = "Distribution by region",
+       x = "Region",
+       y = "Count")
+```
+
+```{r}
+happiness2 <- happiness %>%
+  group_by(Year, Region) %>%
+  summarise(MeanScore = mean(Score))
+
+happiness2
+```
+
+```{r}
+n_hap <- happiness %>%
+  group_by(Year, Region) %>%
+  count()
+
+n_hap
+```
+
+```{r}
+happiness3 <- inner_join(happiness2, n_hap, by = c("Year", "Region"))
+
+happiness3
+```
+
+
+
+```{r}
+happiness3 %>%
+  ggplot(mapping = aes(x = Year, y = MeanScore, color = Region, size = n)) +
+  geom_point()
+```
+
+```{r}
+happiness %>%
+  distinct(Country)
+
+happiness %>%
+  filter(Country == c("United States", "United Kingdom"))
+```
+
+
+```{r}
+reg1 <- glm(Score ~ Region + Economy + Family + Health + Trust + Generosity + Dystopia, data = happiness)
+
+summary(reg1)
+```
+
+
+
+

@@ -1,101 +1,219 @@
 ---
 title: "Final Project"
-output: html_document
+author: "Team 6"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Source: https://www.kaggle.com/unsdsn/world-happiness
+For our final project, we wanted to analyze the calories attributed to coffee consumption and determine whether a linear regression is applicable. We used datasets from the [National Health and Nutrition Examination Survey (NHANES) 2015-2016](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx?BeginYear=2015). 
 
-```{r}
-install.packages("corrplot")
+Specifically, we used
 
-library(corrplot)
+* [Demographics Data](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_I.htm) ([DEMO_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Demographics&CycleBeginYear=2015))
+* [Dietary Interview - Individual Foods, First Day](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm) ([DR1IFF_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Dietary&CycleBeginYear=2015))
+* [Dietary Interview Technical Support File - Food Codes](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm) ([DRXFCD_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Dietary&CycleBeginYear=2015))
+
+Variables in the `final` dataset include:
+
+* **SEQN**: Respondent sequence number
+* **TOTAL**:
+* **COFFEE_TOTAL**: 
+* **GENDER**: Gender
+* **AGE**: Age in years at screening
+* **RACE**: Race
+    + Black
+    + Hispanic
+    + White
+    +Other/Multi
+* **EDUCATION**: Education level for adults (20+ years of age)
+    + Less than high school
+    + Some high school
+    + High school graduate/GED
+    + Some college/AA
+    + College graduate or above
+    + Unsure
+* **MARITAL**: Marital status
+    + Married
+    + Widowed
+    + Divorced
+    + Separated
+    + Never married
+    + Living with partner
+    + Refused
+    + Unsure
+* **HH_SIZE**: Total number of people in the household
+* **HH_INC**: Total household income
+
+# 1. Installing Libraries
+
+```{r, message = FALSE, warning = FALSE}
 library(dplyr)
+library(foreign)
 library(ggplot2)
 library(tidyverse)
 ```
 
-```{r}
-happiness <- read_csv("Happiness.csv")
+# 2. Data Preparation
+## Demographic Dataset
 
-happiness %>% 
+```{r}
+DEMO_I <- read.xport("DEMO_I.XPT")
+
+(DEMO_I <- as_tibble(DEMO_I))
+```
+
+Filtering out people younger than 20 years old because there are two education variables (one for those up to 19 years of age and one for those 20 years of age and older).
+
+```{r}
+(demo <- DEMO_I %>%
+  filter(RIDAGEYR >= 20))
+```
+
+Selecting the desired variables and renaming them. 
+
+```{r}
+(demo <- demo %>%
+  select(SEQN, GENDER = RIAGENDR, AGE = RIDAGEYR, RACE = RIDRETH1, EDUCATION = DMDEDUC2, MARITAL = DMDMARTL, HH_SIZE = DMDHHSIZ,
+         HH_INC = INDHHIN2))
+```
+
+## Factorizing Variables
+
+```{r}
+demo$AGE <- cut(demo$AGE, 
+                 breaks = c(0, 25, 35, 45, 55, 65, 75, Inf), 
+                 labels = c("Below 25", "25-35", "35-45", "45-55", "55-65", "65-75", "Above 75"))
+
+demo$GENDER <- factor(demo$GENDER, 
+                       labels = c("Male", "Female"))
+
+demo$EDUCATION <- factor(demo$EDUCATION, 
+                        labels = c("Less than high school", "Some high school", "High school graduate/GED", "Some college/AA", "College graduate or above", "Unsure"))
+
+demo$RACE <- factor(demo$RACE, 
+                     labels=c("Hispanic", "Hispanic", "White", "Black", "Other/Multi"))
+
+# Filtered out 12 ($20,000 and Over) and 13 (Under $20,000)
+demo <- demo %>%
+  filter(!(HH_INC == 12 | HH_INC == 13))
+
+demo$MARITAL <- factor(demo$MARITAL, 
+                        labels = c("Married", "Widowed", "Divorced", "Separated", "Never married", "Living with partner", "Refused", "Unsure"))
+
+demo$HH_INC <- cut(demo$HH_INC,
+                    breaks = c(0, 4.5, 7.5, 10.5, 76, 98, Inf), 
+                    labels = c("Below 20k", "20-45k", "45-75k", "Above 75k", "Refused", "Unsure"))
+
+demo %>%
   print(width = Inf)
 ```
 
+## Combined Dataset
+
+Combining the first day dataset with the food code dataset to create `join`.
+
 ```{r}
-happiness <- happiness %>%
-  rename(`Rank` = `Happiness Rank`,
-         `Score` = `Happiness Score`,
-         `Economy` = `Economy (GDP per Capita)`,
-         `Health` = `Health (Life Expectancy)`,
-         `Trust` = `Trust (Government Corruption)`,
-         `Dystopia` = `Dystopia Residual`)
+DR1IFF_I <- read.xport("DR1IFF_I.XPT")
 
-happiness$Trust <- as.double(happiness$Trust)
+DR1IFF_I <- DR1IFF_I %>%
+  rename(DRXFDCD = DR1IFDCD)
 
-happiness
+DRXFCD_I <- read.xport("DRXFCD_I.XPT")
+
+join <- inner_join(DR1IFF_I, DRXFCD_I, by = "DRXFDCD")
+```
+
+## Total Calories Dataset
+
+Finding the total number of calories consumed for each sample. 
+
+```{r}
+total <- DR1IFF_I %>%
+  group_by(SEQN) %>%
+  mutate(TOTAL = sum(DR1IKCAL )) %>%
+  select(SEQN, TOTAL)
+
+(total <- total %>% 
+   distinct(SEQN, TOTAL))
+```
+
+## Total Coffee Calories Dataset
+
+Selecting the food codes that relate to coffee as a beverage (ommitting unrelated coffee products such as coffee cake, Irish coffee, etc.).
+
+```{r}
+coffee_code <- DRXFCD_I[c(393:405, 8254:8378), ]
+coffee_code <- as_tibble(coffee_code)
+```
+
+Finding the total number of calories attributed to consuming coffee or coffee-related products.
+
+```{r}
+coffee <- inner_join(join, coffee_code, by = "DRXFDCD")
+
+coffee <- coffee %>%
+  group_by(SEQN) %>%
+  mutate(COFFEE_TOTAL = sum(DR1IKCAL )) %>%
+  select(SEQN, COFFEE_TOTAL)
+  
+(coffee <- coffee %>%
+  distinct(SEQN, COFFEE_TOTAL))
+```
+
+## Final Dataset
+
+First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL`. Then we created `final` by joining `clean` with `demo`. 
+
+```{r}
+(clean <- left_join(total, coffee, by = "SEQN"))
+
+final <- inner_join(clean, demo, by = "SEQN")
+
+(final <- as_tibble(final))
+```
+
+# 3. Data Analysis
+```{r}
+mean(final$COFFEE_TOTAL, na.rm = T)
+
+max(final$COFFEE_TOTAL, na.rm = T)
+
+final[which.max(final$COFFEE_TOTAL), ]
 ```
 
 ```{r}
-happiness %>%
-  plyr::count("Region") %>%
-  arrange(desc(freq)) %>%
-  ggplot() +
-  geom_bar(mapping = aes(x = reorder(Region, freq), y = freq), stat = "identity") +
-  coord_flip() + 
-  labs(title = "Distribution by region",
-       x = "Region",
+tapply(final$TOTAL, final$GENDER, mean)
+
+tapply(final$COFFEE_TOTAL, final$GENDER, mean, na.rm = T)
+```
+
+# 4. Data Visualization
+
+```{r, warning = FALSE}
+final %>%
+  ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
+  geom_histogram(color = "white") +
+  labs(title = "Distribution of calories from coffee consumption",
+       x = "Coffee consumption (calories)",
        y = "Count")
 ```
 
+# 5. Linear Regression
 ```{r}
-happiness2 <- happiness %>%
-  group_by(Year, Region) %>%
-  summarise(MeanScore = mean(Score))
+final
 
-happiness2
-```
-
-```{r}
-n_hap <- happiness %>%
-  group_by(Year, Region) %>%
-  count()
-
-n_hap
-```
-
-```{r}
-happiness3 <- inner_join(happiness2, n_hap, by = c("Year", "Region"))
-
-happiness3
-```
-
-
-
-```{r}
-happiness3 %>%
-  ggplot(mapping = aes(x = Year, y = MeanScore, color = Region, size = n)) +
-  geom_point()
-```
-
-```{r}
-happiness %>%
-  distinct(Country)
-
-happiness %>%
-  filter(Country == c("United States", "United Kingdom"))
-```
-
-
-```{r}
-reg1 <- glm(Score ~ Region + Economy + Family + Health + Trust + Generosity + Dystopia, data = happiness)
-
+reg1 <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
 summary(reg1)
 ```
 
-
-
+```{r}
+reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + EDUCATION, data = final)
+summary(reg2)
+```
 
