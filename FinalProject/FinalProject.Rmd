@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Team 6"
+author: "Team 6 (Alex Frumkin, Tony Lim, Sara Nager, Jaanhvi Vaidya, Trisha Mathelier)"
 output:
   html_document:
     toc: true
@@ -56,6 +56,7 @@ Variables in the `final` dataset include:
 library(dplyr)
 library(foreign)
 library(ggplot2)
+library(jtools)
 library(tidyverse)
 ```
 
@@ -121,6 +122,7 @@ Combining the first day dataset with the food code dataset to create `join`.
 ```{r}
 DR1IFF_I <- read.xport("DR1IFF_I.XPT")
 
+# Rename column to the same column in DRXFCD_I to inner_join later
 DR1IFF_I <- DR1IFF_I %>%
   rename(DRXFDCD = DR1IFDCD)
 
@@ -136,7 +138,7 @@ Finding the total number of calories consumed for each sample.
 ```{r}
 total <- DR1IFF_I %>%
   group_by(SEQN) %>%
-  mutate(TOTAL = sum(DR1IKCAL )) %>%
+  mutate(TOTAL = sum(DR1IKCAL)) %>%
   select(SEQN, TOTAL)
 
 (total <- total %>% 
@@ -145,11 +147,11 @@ total <- DR1IFF_I %>%
 
 ## Total Coffee Calories Dataset
 
-Selecting the food codes that relate to coffee as a beverage (ommitting unrelated coffee products such as coffee cake, Irish coffee, etc.).
+Selecting the relevant food codes such as coffee creamer and multiple forms of coffee (brewed, cappuccino, Cuban, espresso, iced, instant, latte, macchiato, etc.) while ommitting unrelated coffee products (coffee cake, Irish coffee, etc.).
 
 ```{r}
-coffee_code <- DRXFCD_I[c(393:405, 8254:8378), ]
-coffee_code <- as_tibble(coffee_code)
+coffee_code <- DRXFCD_I[c(393:405, 8254:8374, 8378), ]
+(coffee_code <- as_tibble(coffee_code))
 ```
 
 Finding the total number of calories attributed to consuming coffee or coffee-related products.
@@ -159,16 +161,16 @@ coffee <- inner_join(join, coffee_code, by = "DRXFDCD")
 
 coffee <- coffee %>%
   group_by(SEQN) %>%
-  mutate(COFFEE_TOTAL = sum(DR1IKCAL )) %>%
+  mutate(COFFEE_TOTAL = sum(DR1IKCAL)) %>%
   select(SEQN, COFFEE_TOTAL)
-  
+
 (coffee <- coffee %>%
   distinct(SEQN, COFFEE_TOTAL))
 ```
 
 ## Final Dataset
 
-First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL`. Then we created `final` by joining `clean` with `demo`. 
+First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL` using a left join between `total` and `coffee`. Then we created `final` using inner join `clean` with `demo`. 
 
 ```{r}
 (clean <- left_join(total, coffee, by = "SEQN"))
@@ -189,7 +191,9 @@ final[which.max(final$COFFEE_TOTAL), ]
 
 ```{r}
 tapply(final$TOTAL, final$GENDER, mean)
+```
 
+```{r}
 tapply(final$COFFEE_TOTAL, final$GENDER, mean, na.rm = T)
 ```
 
@@ -208,12 +212,23 @@ final %>%
 ```{r}
 final
 
-reg1 <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
+# final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
+final$new <- replace_na(final$COFFEE_TOTAL, 0)
+
+final
+```
+
+```{r}
+reg <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
+summary(reg)
+```
+
+```{r}
+reg1 <- glm(new ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
 summary(reg1)
 ```
 
 ```{r}
 reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + EDUCATION, data = final)
-summary(reg2)
+summ(reg2)
 ```
-
