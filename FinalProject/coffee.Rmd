@@ -1,0 +1,117 @@
+---
+title: "Water"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(foreign)
+library(tidyverse)
+```
+
+
+```{r}
+DEMO_I <- read.xport("DEMO_I.XPT")
+
+DEMO_I %>%
+  print(width = Inf)
+```
+
+```{r}
+(demo <- DEMO_I %>%
+  select(SEQN, GENDER = RIAGENDR, AGE = RIDAGEYR, RACE = RIDRETH1, EDUCATION = DMDEDUC2, MARITAL = DMDMARTL, HH_SIZE = DMDHHSIZ,
+         HH_INC = INDHHIN2))
+
+```
+
+```{r}
+# Filtered out people younger than 20 years old
+demo <- demo %>%
+  filter(AGE >= 20)
+
+demo
+```
+
+```{r}
+demo$AGE <- cut(demo$AGE, 
+                 breaks = c(0, 25, 35, 45, 55, 65, 75, Inf), 
+                 labels = c("Below 25", "25-35", "35-45", "45-55", "55-65", "65-75", "Above 75"))
+
+demo$GENDER <- factor(demo$GENDER, 
+                       labels = c("Male", "Female"))
+
+demo$EDUCATION <- factor(demo$EDUCATION, 
+                        labels = c("Less than high school", "Some high school", "High school graduate/GED", "Some college/AA", "College graduate or above", "Unsure"))
+
+demo$RACE <- factor(demo$RACE, 
+                     labels=c("Hispanic", "Hispanic", "White", "Black", "Other/Multi"))
+
+# Filtered out 12 ($20,000 and Over) and 13 (Under $20,000)
+demo <- demo %>%
+  filter(!(HH_INC == 12 | HH_INC == 13))
+
+demo$MARITAL <- factor(demo$MARITAL, 
+                        labels = c("Married", "Widowed", "Divorced", "Divorced", "Never married", "Living with partner", "Refused", "Unsure"))
+
+demo$HH_INC <- cut(demo$HH_INC,
+                    breaks = c(0, 4.5, 7.5, 10.5, 76, 98, Inf), 
+                    labels = c("Below 20k", "20-45k", "45-75k", "Above 75k", "Refused", "Unsure"))
+```
+
+```{r}
+DR1IFF_I <- read.xport("DR1IFF_I.XPT")
+
+DR1IFF_I <- DR1IFF_I %>%
+  rename(DRXFDCD = DR1IFDCD)
+
+DRXFCD_I <- read.xport("DRXFCD_I.XPT")
+
+join <- inner_join(DR1IFF_I, DRXFCD_I, by = "DRXFDCD")
+```
+
+```{r}
+total <- DR1IFF_I %>%
+  group_by(SEQN) %>%
+  mutate(TOTAL = sum(DR1IKCAL )) %>%
+  select(SEQN, TOTAL)
+
+ total <- total %>% 
+   distinct(SEQN, TOTAL)
+ 
+ total
+```
+
+```{r}
+library(stringr)
+library()
+
+coffee_code <- DRXFCD_I[c(393:405, 8254:8378), ]
+coffee_code
+
+coffee <- inner_join(join, coffee_code, by = "DRXFDCD")
+
+coffee <- coffee %>%
+  group_by(SEQN) %>%
+  mutate(COFFEE_TOTAL = sum(DR1IKCAL )) %>%
+  select(SEQN, COFFEE_TOTAL)
+  
+coffee <- coffee %>%
+  distinct(SEQN, COFFEE_TOTAL)
+
+coffee
+
+clean <- left_join(total, coffee, by = "SEQN")
+
+FINAL <- inner_join(clean, demo, by = "SEQN")
+
+```
+
+```{r}
+FINAL %>%
+  filter(COFFEE_TOTAL == max(FINAL$COFFEE_TOTAL))
+```
+
