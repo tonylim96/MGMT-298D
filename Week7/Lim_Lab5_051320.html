@@ -396,10 +396,10 @@ new.packages &lt;- list.of.packages[!(list.of.packages %in% installed.packages()
 if(length(new.packages)) install.packages(new.packages)
 
 library(caTools)
-library(ROCR)
 library(dplyr)
+library(ROCR)
 library(tidyverse)</code></pre>
-<p>Load the data file framingham.csv and convert <code>Education</code> to a factor variable.</p>
+<p>Load the data file <code>framingham.csv</code> and convert <code>Education</code> to a factor variable.</p>
 <pre class="r"><code>FRAMINGHAM &lt;- read_csv(&quot;framingham.csv&quot;)</code></pre>
 <pre><code>## Parsed with column specification:
 ## cols(

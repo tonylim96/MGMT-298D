@@ -20,7 +20,7 @@ The goal of this analysis is to replicate the study using real survey data on ex
 
 # 2. Data Collection
 
-We will use the National Health and Nutrition Examination Survey (NHANES) for 3 periods: 1999-2000, 2001-2002, 2003-2004. After downloading the raw data and cleaning it (given in the script EconomicsExercise.R), we have a dataset NHANES.csv, which includes 13,876 observations and 11 variables:
+We will use the National Health and Nutrition Examination Survey (NHANES) for 3 periods: 1999-2000, 2001-2002, 2003-2004. After downloading the raw data and cleaning it (given in the script EconomicsExercise.R), we have a dataset `NHANES.csv`, which includes 13,876 observations and 11 variables:
 
 * **SEQN:**          Survey respondant's sequence number
 * **HOURS_TOTAL:**   Total hours exercised in the last 30 days (NA if none)
@@ -43,12 +43,13 @@ list.of.packages <- c("tidyverse", "dplyr", "jtools", "foreign", "wesanderson")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-library(tidyverse)
-library(foreign)
-library(wesanderson)
-library(ggplot2)
 library(dplyr)
+library(ggplot2)
 library(jtools)
+library(foreign)
+library(tidyr)
+library(tidyverse)
+library(wesanderson)
 ```
 
 ```{r}
@@ -70,7 +71,7 @@ NHANES[which.max(NHANES$HOURS_TOTAL), ]
 
 Next, let's create a histogram of hours exercised by race/ethnicity. We will use ggplot to create 4 subplots using `facet_wrap()` with different colors.
 
-```{r}
+```{r, warning = FALSE}
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = HOURS_TOTAL, fill = RACE), 
@@ -88,7 +89,7 @@ Notice how the extreme exercise enthusiasts are making it difficult to see most 
 ## Question 2
 Create a new histogram plot with `binwidth = 2` and x-axes capped at 60 hours.
 
-```{r}
+```{r, warning = FALSE}
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = ifelse(HOURS_TOTAL > 60, 60, HOURS_TOTAL), 
@@ -106,7 +107,7 @@ NHANES %>%
 
 Plot a histogram of average intensity by income bracket. Use `binwidth = 0.5`, and you do not need to cap the x-axis.
 
-```{r}
+```{r, warning = FALSE}
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = INTENSITY_AVG, 
@@ -127,7 +128,7 @@ NHANES %>%
 
 Let's repeat this, but further divide by gender. Hint: use `facet_grid()` instead of `facet_wrap()`.
 
-```{r}
+```{r, warning = FALSE}
 NHANES %>%
   ggplot() +
   geom_histogram(mapping = aes(x = INTENSITY_AVG, 
@@ -177,9 +178,6 @@ Regress total hours of exercise on age, marital status, race, gender, and income
 ```{r}
 ols2 <- lm(HOURS_TOTAL ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
 summ(ols2)
-
-# ols3 <- lm(LN_HOURS ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
-# summ(ols3)
 ```
 
 The results from the regression do differ from Table 3 from Meltzer and Jena. Some possible explanations could be that our dataset included extra categories not included in the article's dataset (e.g., included ages below 25, marital status of refused/unsure, race status of other/multi, and income status of refused/unsure). Our dataset had a sample size of 6,371 while the article's dataset had a sample size of 6,135. 
@@ -189,11 +187,8 @@ The results from the regression do differ from Table 3 from Meltzer and Jena. So
 Regress average exercise intensity on age, marital status, race, gender, and income. Does this support the hypothesis that higher income individuals report more intense exercise?
 
 ```{r}
-ols4 <- lm(INTENSITY_AVG ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
-summ(ols4)
-
-# ols5 <- lm(LN_INTENSITY ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
-# summ(ols5)
+ols3 <- lm(INTENSITY_AVG ~ AGE + MARITAL + RACE + GENDER + INCOME, data = NHANES)
+summ(ols3)
 ```
 
 The regression analysis does support the hypothesis that higher income individuals report more intense exercise. We see that respondants with an income above $75K have a coefficient value of 0.18 (p-value < 0.01). However, the coefficients for those earning $20-45K and $45-75K (0.01 and 0.00, respectively) were not statistically significant (p-values of 0.79 and 1.00, respectively). 
@@ -208,7 +203,6 @@ Think about what might be driving these observed results. Use the following code
 Which activities might drive these results?
 
 ```{r}
-library(tidyr)
 ACTIVITY <- read.csv("ACTIVITY.csv")
 INNER <- inner_join(NHANES, ACTIVITY, by = "SEQN")
 table1 <- table(INNER$DESCRIPTION, INNER$PADMETS)

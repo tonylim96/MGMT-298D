@@ -23,12 +23,12 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 if(length(new.packages)) install.packages(new.packages)
 
 library(caTools)
-library(ROCR)
 library(dplyr)
+library(ROCR)
 library(tidyverse)
 ```
 
-Load the data file framingham.csv and convert `Education` to a factor variable.
+Load the data file `framingham.csv` and convert `Education` to a factor variable.
 ```{r}
 FRAMINGHAM <- read_csv("framingham.csv")
 FRAMINGHAM$Education = as.factor(FRAMINGHAM$Education)

@@ -18,7 +18,7 @@ The goal of this analysis is to explore the relationship between total caloric i
 
 # 2. Data Collection and Merging
  
-We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset TOTAL_CALORIES was previously created using the NHANES datasets DR1IFF_I.XPT (on daily food consumption) and DRXFCD_I.XPT (on food codes) available at https://wwwn.cdc.gov/nchs/nhanes/Default.aspx.
+We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset `TOTAL_CALORIES` was previously created using the NHANES datasets `DR1IFF_I.XPT` (on daily food consumption) and `DRXFCD_I.XPT` (on food codes) available at https://wwwn.cdc.gov/nchs/nhanes/Default.aspx.
 
 **DEMO** 
 
@@ -33,12 +33,12 @@ We will use 2 datasets from the National Health and Nutrition Examination Survey
 * **ALL_CALORIES:**  Total calories consumed (food + drinks) by respondant in past 24 hours     
 * **BEER_CALORIES:** Calories consumed from beer in past 24 hours
 
-Use `read.csv()` to load each dataset for analysis.
+Use `read_csv()` to load each dataset for analysis.
 ```{r message=F, warning=F}
-library(readr)
 library(dplyr)
 library(ggplot2)
 library(jtools)
+library(readr)
 ```
 
 ```{r}
@@ -64,7 +64,7 @@ With `full_join()`, we have 9,207 observations.
 
 ## Question 2
 
-Use `inner_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset INNER. How many observations are in INNER?
+Use `inner_join()` to merge the datasets using `SEQN` as the common link. Name this new dataset `INNER`. How many observations are in INNER?
 
 ```{r}
 INNER <- inner_join(DEMO, TOTAL_CALORIES, by = "SEQN") %>%
@@ -73,11 +73,11 @@ INNER <- inner_join(DEMO, TOTAL_CALORIES, by = "SEQN") %>%
 
 With `inner_join()`, we have 5,017 observations.
 
-We will use INNER in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.
+We will use `INNER` in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.
 
 # 3. Data Exploration
 
-Let's calculate the mean and standard deviation of TOTAL calories by gender using the following code:
+Let's calculate the mean and standard deviation of `TOTAL` calories by gender using the following code:
 
 ```{r}
 tapply(INNER$ALL_CALORIES, INNER$GENDER, mean)
@@ -89,16 +89,17 @@ Women have an average total caloric consumption of 1799.3 with a standard deviat
 
 ## Question 3
 
-What are the mean BEER calories consumed by men and women?
+What are the mean `BEER` calories consumed by men and women?
 
 ```{r}
 tapply(INNER$BEER_CALORIES, INNER$GENDER, mean)
 ```
+
 On average, men consume 92.4 beer calories while women consume 16.6 beer calories.  
 
 ## Question 4
 
-Consumers with which education level consume the most TOTAL calories? And the most BEER calories?
+Consumers with which education level consume the most `TOTAL` calories? And the most `BEER` calories?
 
 ```{r}
 tapply(INNER$ALL_CALORIES, INNER$EDUCATION, mean)
@@ -116,7 +117,7 @@ On average, college graduates consume the most total calories (2119.7), but indi
 
 Create a histogram of total caloric consumption by gender, using `ggplot()` and `facet_wrap()` with different colors.
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 INNER %>%
   ggplot() +
   geom_histogram(mapping = aes(x = ALL_CALORIES, fill = GENDER), 
@@ -133,7 +134,7 @@ INNER %>%
 
 ## Question 6 
 
-Regress TOTAL calories on age, gender, and education using the INNER data. 
+Regress `TOTAL` calories on age, gender, and education using the `INNER` data. 
 
 ```{r}
 reg1 <- lm(ALL_CALORIES ~ AGE + GENDER+ EDUCATION, data = INNER)
@@ -143,7 +144,7 @@ summ(reg1)
 
 ## Question 7
 
-Regress BEER calories on age, gender, and education using the INNER data.
+Regress `BEER` calories on age, gender, and education using the `INNER` data.
 
 ```{r}
 reg2 <- lm(BEER_CALORIES ~ AGE + GENDER + EDUCATION, data = INNER)
@@ -151,7 +152,7 @@ reg2 <- lm(BEER_CALORIES ~ AGE + GENDER + EDUCATION, data = INNER)
 summ(reg2)
 ```
 
-Finally, let's use our regressions to make a prediction for a friend. We make a small dataframe called FRIEND and enter some input values for the regression.
+Finally, let's use our regressions to make a prediction for a friend. We make a small dataframe called `FRIEND` and enter some input values for the regression.
 
 ```{r}
 FRIEND <- data.frame(

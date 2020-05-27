@@ -396,7 +396,7 @@ summary {
 </div>
 <div id="data-collection-and-merging" class="section level1">
 <h1>2. Data Collection and Merging</h1>
-<p>We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset TOTAL_CALORIES was previously created using the NHANES datasets DR1IFF_I.XPT (on daily food consumption) and DRXFCD_I.XPT (on food codes) available at <a href="https://wwwn.cdc.gov/nchs/nhanes/Default.aspx" class="uri">https://wwwn.cdc.gov/nchs/nhanes/Default.aspx</a>.</p>
+<p>We will use 2 datasets from the National Health and Nutrition Examination Survey (NHANES) for 2015-2016. Note, the dataset <code>TOTAL_CALORIES</code> was previously created using the NHANES datasets <code>DR1IFF_I.XPT</code> (on daily food consumption) and <code>DRXFCD_I.XPT</code> (on food codes) available at <a href="https://wwwn.cdc.gov/nchs/nhanes/Default.aspx" class="uri">https://wwwn.cdc.gov/nchs/nhanes/Default.aspx</a>.</p>
 <p><strong>DEMO</strong></p>
 <ul>
 <li><strong>SEQN:</strong> Survey respondant’s sequence number</li>
@@ -411,11 +411,11 @@ summary {
 </li>
 <li><strong>BEER_CALORIES:</strong> Calories consumed from beer in past 24 hours</li>
 </ul>
-<p>Use <code>read.csv()</code> to load each dataset for analysis.</p>
-<pre class="r"><code>library(readr)
-library(dplyr)
+<p>Use <code>read_csv()</code> to load each dataset for analysis.</p>
+<pre class="r"><code>library(dplyr)
 library(ggplot2)
-library(jtools)</code></pre>
+library(jtools)
+library(readr)</code></pre>
 <pre class="r"><code>DEMO &lt;- read_csv(&quot;DEMO.csv&quot;) %&gt;% 
   print(width = Inf)</code></pre>
 <pre><code>## Parsed with column specification:
@@ -484,7 +484,7 @@ library(jtools)</code></pre>
 </div>
 <div id="question-2" class="section level2">
 <h2>Question 2</h2>
-<p>Use <code>inner_join()</code> to merge the datasets using <code>SEQN</code> as the common link. Name this new dataset INNER. How many observations are in INNER?</p>
+<p>Use <code>inner_join()</code> to merge the datasets using <code>SEQN</code> as the common link. Name this new dataset <code>INNER</code>. How many observations are in INNER?</p>
 <pre class="r"><code>INNER &lt;- inner_join(DEMO, TOTAL_CALORIES, by = &quot;SEQN&quot;) %&gt;%
   print(width = Inf)</code></pre>
 <pre><code>## # A tibble: 5,017 x 6
@@ -502,12 +502,12 @@ library(jtools)</code></pre>
 ## 10 83747 Male      46 College Grad                  1528             0
 ## # ... with 5,007 more rows</code></pre>
 <p>With <code>inner_join()</code>, we have 5,017 observations.</p>
-<p>We will use INNER in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.</p>
+<p>We will use <code>INNER</code> in the remainder of the lab, as we want only to include only those individuals with both demographic information and calorie consumption data.</p>
 </div>
 </div>
 <div id="data-exploration" class="section level1">
 <h1>3. Data Exploration</h1>
-<p>Let’s calculate the mean and standard deviation of TOTAL calories by gender using the following code:</p>
+<p>Let’s calculate the mean and standard deviation of <code>TOTAL</code> calories by gender using the following code:</p>
 <pre class="r"><code>tapply(INNER$ALL_CALORIES, INNER$GENDER, mean)</code></pre>
 <pre><code>##   Female     Male 
 ## 1799.294 2373.886</code></pre>
@@ -517,7 +517,7 @@ library(jtools)</code></pre>
 <p>Women have an average total caloric consumption of 1799.3 with a standard deviation of 761.1. Men have an average total caloric consumption of 2373.9 with a standard deviation of 1039.3.</p>
 <div id="question-3" class="section level2">
 <h2>Question 3</h2>
-<p>What are the mean BEER calories consumed by men and women?</p>
+<p>What are the mean <code>BEER</code> calories consumed by men and women?</p>
 <pre class="r"><code>tapply(INNER$BEER_CALORIES, INNER$GENDER, mean)</code></pre>
 <pre><code>##   Female     Male 
 ## 16.64873 92.40248</code></pre>
@@ -525,7 +525,7 @@ library(jtools)</code></pre>
 </div>
 <div id="question-4" class="section level2">
 <h2>Question 4</h2>
-<p>Consumers with which education level consume the most TOTAL calories? And the most BEER calories?</p>
+<p>Consumers with which education level consume the most <code>TOTAL</code> calories? And the most <code>BEER</code> calories?</p>
 <pre class="r"><code>tapply(INNER$ALL_CALORIES, INNER$EDUCATION, mean)</code></pre>
 <pre><code>##          College Grad           High School Less than High School 
 ##              2119.723              2099.590              1976.451 
@@ -561,7 +561,7 @@ library(jtools)</code></pre>
 <h1>5. Linear Regression Analysis</h1>
 <div id="question-6" class="section level2">
 <h2>Question 6</h2>
-<p>Regress TOTAL calories on age, gender, and education using the INNER data.</p>
+<p>Regress <code>TOTAL</code> calories on age, gender, and education using the <code>INNER</code> data.</p>
 <pre class="r"><code>reg1 &lt;- lm(ALL_CALORIES ~ AGE + GENDER+ EDUCATION, data = INNER)
 
 summ(reg1)</code></pre>
@@ -590,7 +590,7 @@ summ(reg1)</code></pre>
 </div>
 <div id="question-7" class="section level2">
 <h2>Question 7</h2>
-<p>Regress BEER calories on age, gender, and education using the INNER data.</p>
+<p>Regress <code>BEER</code> calories on age, gender, and education using the <code>INNER</code> data.</p>
 <pre class="r"><code>reg2 &lt;- lm(BEER_CALORIES ~ AGE + GENDER + EDUCATION, data = INNER)
 
 summ(reg2)</code></pre>
@@ -616,7 +616,7 @@ summ(reg2)</code></pre>
 ## School                                                     
 ## EDUCATIONSome College         18.73    7.97     2.35   0.02
 ## -----------------------------------------------------------</code></pre>
-<p>Finally, let’s use our regressions to make a prediction for a friend. We make a small dataframe called FRIEND and enter some input values for the regression.</p>
+<p>Finally, let’s use our regressions to make a prediction for a friend. We make a small dataframe called <code>FRIEND</code> and enter some input values for the regression.</p>
 <pre class="r"><code>FRIEND &lt;- data.frame(
   AGE = 25,
   GENDER = &quot;Male&quot;,

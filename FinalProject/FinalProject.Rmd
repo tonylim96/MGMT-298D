@@ -17,7 +17,7 @@ Specifically, we used
 
 * [Demographics Data](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_I.htm) ([DEMO_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Demographics&CycleBeginYear=2015))
 * [Dietary Interview - Individual Foods, First Day](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm) ([DR1IFF_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Dietary&CycleBeginYear=2015))
-* [Dietary Interview Technical Support File - Food Codes](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm) ([DRXFCD_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Dietary&CycleBeginYear=2015))
+* [Dietary Interview Technical Support File - Food Codes](https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DRXFCD_I.htm) ([DRXFCD_I.XPT](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Dietary&CycleBeginYear=2015))
 
 Variables in the `final` dataset include:
 
@@ -30,7 +30,7 @@ Variables in the `final` dataset include:
     + Black
     + Hispanic
     + White
-    +Other/Multi
+    + Other/Multi
 * **EDUCATION**: Education level for adults (20+ years of age)
     + Less than high school
     + Some high school
@@ -58,6 +58,7 @@ library(foreign)
 library(ggplot2)
 library(jtools)
 library(tidyverse)
+library(wesanderson)
 ```
 
 # 2. Data Preparation
@@ -69,17 +70,27 @@ DEMO_I <- read.xport("DEMO_I.XPT")
 (DEMO_I <- as_tibble(DEMO_I))
 ```
 
+```{r}
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 < 10] <- 1
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(9:12)] <- 2
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(13, 14)] <- 3
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 15] <- 4
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(55, 66)] <- 1
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 77] <- 7
+DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 99] <- 9
+```
+
 Filtering out people younger than 20 years old because there are two education variables (one for those up to 19 years of age and one for those 20 years of age and older).
 
 ```{r}
-(demo <- DEMO_I %>%
-  filter(RIDAGEYR >= 20))
+# (demo <- DEMO_I %>%
+#   filter(RIDAGEYR >= 20))
 ```
 
 Selecting the desired variables and renaming them. 
 
 ```{r}
-(demo <- demo %>%
+(demo <- DEMO_I %>%
   select(SEQN, GENDER = RIAGENDR, AGE = RIDAGEYR, RACE = RIDRETH1, EDUCATION = DMDEDUC2, MARITAL = DMDMARTL, HH_SIZE = DMDHHSIZ,
          HH_INC = INDHHIN2))
 ```
@@ -127,7 +138,9 @@ DR1IFF_I <- DR1IFF_I %>%
   rename(DRXFDCD = DR1IFDCD)
 
 DRXFCD_I <- read.xport("DRXFCD_I.XPT")
+```
 
+```{r}
 join <- inner_join(DR1IFF_I, DRXFCD_I, by = "DRXFDCD")
 ```
 
@@ -177,46 +190,97 @@ First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL` using 
 
 final <- inner_join(clean, demo, by = "SEQN")
 
+final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
+
 (final <- as_tibble(final))
 ```
 
-# 3. Data Analysis
+# 3. Data Visualization
+
+```{r, message = FALSE, warning = FALSE}
+final %>%
+  ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
+  geom_histogram(fill = "#D69C4E", color = "white") +
+  labs(title = "Distribution of calories from coffee consumption",
+       x = "Coffee consumption (calories)",
+       y = "Count")
+```
+
+```{r, message = FALSE, warning = FALSE}
+final %>%
+  ggplot() + 
+  geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = GENDER), color = "white") +
+  labs(title = "Distribution of calories from coffee consumption",
+       x = "Coffee consumption (calories)",
+       y = "Count") +
+  scale_fill_manual(name = "Gender", values = wes_palette("Darjeeling2")) +
+  facet_wrap(~ GENDER)
+```
+
+```{r, message = FALSE, warning = FALSE}
+final %>%
+  ggplot() + 
+  geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = RACE), color = "white") +
+  labs(title = "Distribution of calories from coffee consumption",
+       x = "Coffee consumption (calories)",
+       y = "Count") +
+  scale_fill_manual(name = "Race", values = wes_palette("Moonrise2")) +
+  facet_wrap(~ RACE)
+```
+
+```{r, message = FALSE, warning = FALSE}
+final %>%
+  filter(!(EDUCATION == "Unsure" | is.na(EDUCATION))) %>%
+  ggplot() + 
+  geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = EDUCATION), color = "white") +
+  labs(title = "Distribution of calories from coffee consumption",
+       x = "Coffee consumption (calories)",
+       y = "Count") +
+  scale_fill_manual(name = "Education", values = wes_palette("IsleofDogs2")) +
+  facet_wrap(~ EDUCATION)
+```
+
+# 4. Data Analysis
+
 ```{r}
-mean(final$COFFEE_TOTAL, na.rm = T)
+summary(final)
+```
 
-max(final$COFFEE_TOTAL, na.rm = T)
 
+```{r}
 final[which.max(final$COFFEE_TOTAL), ]
 ```
 
 ```{r}
-tapply(final$TOTAL, final$GENDER, mean)
+tapply(final$TOTAL, final$GENDER, mean, na.rm = T)
 ```
 
 ```{r}
 tapply(final$COFFEE_TOTAL, final$GENDER, mean, na.rm = T)
 ```
 
-# 4. Data Visualization
+```{r}
+tapply(final$TOTAL, final$EDUCATION, mean, na.rm = T)
+```
 
-```{r, warning = FALSE}
+```{r}
+tapply(final$COFFEE_TOTAL, final$EDUCATION, mean, na.rm = T)
+```
+
+```{r}
+tapply(final$TOTAL, final$RACE, mean, na.rm = T)
+```
+
+```{r}
+tapply(final$COFFEE_TOTAL, final$RACE, mean, na.rm = T)
+```
+
+```{r}
 final %>%
-  ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
-  geom_histogram(color = "white") +
-  labs(title = "Distribution of calories from coffee consumption",
-       x = "Coffee consumption (calories)",
-       y = "Count")
+  t.test(COFFEE_TOTAL ~ GENDER, data = ., var.equal = TRUE)
 ```
 
 # 5. Linear Regression
-```{r}
-final
-
-# final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
-final$new <- replace_na(final$COFFEE_TOTAL, 0)
-
-final
-```
 
 ```{r}
 reg <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
@@ -224,11 +288,21 @@ summary(reg)
 ```
 
 ```{r}
-reg1 <- glm(new ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
-summary(reg1)
+reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION, data = final)
+summary(reg2)
 ```
 
 ```{r}
-reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + EDUCATION, data = final)
-summ(reg2)
+tony <- data.frame(
+  GENDER = "Male",
+  AGE = "Below 25",
+  RACE = "Other/Multi",
+  EDUCATION = "College graduate or above"
+  )
 ```
+
+```{r}
+predict(reg2, newdata = tony, interval = "prediction")
+```
+
+
