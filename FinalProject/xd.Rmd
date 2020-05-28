@@ -22,8 +22,8 @@ Specifically, we used
 Variables in the `final` dataset include:
 
 * **SEQN**: Respondent sequence number
-* **TOTAL**: Total number of calories consumed
-* **COFFEE_TOTAL**: Total number of calories attributable to coffee consumption
+* **TOTAL**:
+* **COFFEE_TOTAL**: 
 * **GENDER**: Gender
 * **AGE**: Age in years at screening
 * **RACE**: Race
@@ -31,7 +31,7 @@ Variables in the `final` dataset include:
     + Hispanic
     + White
     + Other/Multi
-* **EDUCATION**: Education level
+* **EDUCATION**: Education level for adults (20+ years of age)
     + Less than high school
     + Some high school
     + High school graduate/GED
@@ -65,31 +65,32 @@ library(wesanderson)
 ## Demographic Dataset
 
 ```{r}
-demo <- read.xport("DEMO_I.XPT")
+DEMO_I <- read.xport("DEMO_I.XPT")
 
-(demo <- as_tibble(demo))
+(DEMO_I <- as_tibble(DEMO_I))
 ```
 
-Converting DMDEDUC2 variable for those below 20 years of age to DMDEDUC3 variable
 ```{r}
-demo$DMDEDUC2[demo$DMDEDUC3 < 10] <- 1
-demo$DMDEDUC2[demo$DMDEDUC3 %in% c(9:12)] <- 2
-demo$DMDEDUC2[demo$DMDEDUC3 %in% c(13, 14)] <- 3
-demo$DMDEDUC2[demo$DMDEDUC3 == 15] <- 4
-demo$DMDEDUC2[demo$DMDEDUC3 %in% c(55, 66)] <- 1
-demo$DMDEDUC2[demo$DMDEDUC3 == 77] <- 7
-demo$DMDEDUC2[demo$DMDEDUC3 == 99] <- 9
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 < 10] <- 1
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(9:12)] <- 2
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(13, 14)] <- 3
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 15] <- 4
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 %in% c(55, 66)] <- 1
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 77] <- 7
+# DEMO_I$DMDEDUC2[DEMO_I$DMDEDUC3 == 99] <- 9
 ```
 
-```{r, echo = FALSE, include = FALSE}
-# Filtering out people younger than 20 years old because there are two education variables (one for those up to 19 years of age and one for those 20 years of age and older).
-# (demo <- demo %>%
-#   filter(RIDAGEYR >= 20))
+Filtering out people younger than 20 years old because there are two education variables (one for those up to 19 years of age and one for those 20 years of age and older).
+
+```{r}
+(DEMO_I <- DEMO_I %>%
+  filter(RIDAGEYR >= 20))
 ```
 
 Selecting the desired variables and renaming them. 
+
 ```{r}
-(demo <- demo %>%
+(demo <- DEMO_I %>%
   select(SEQN, GENDER = RIAGENDR, AGE = RIDAGEYR, RACE = RIDRETH1, EDUCATION = DMDEDUC2, MARITAL = DMDMARTL, HH_SIZE = DMDHHSIZ,
          HH_INC = INDHHIN2))
 ```
@@ -98,8 +99,8 @@ Selecting the desired variables and renaming them.
 
 ```{r}
 demo$AGE <- cut(demo$AGE, 
-                 breaks = c(0, 15, 25, 35, 45, 55, 65, 75, Inf), 
-                 labels = c("Below 15", "15-25", "25-35", "35-45", "45-55", "55-65", "65-75", "Above 75"))
+                 breaks = c(0, 25, 35, 45, 55, 65, 75, Inf), 
+                 labels = c("Below 25", "25-35", "35-45", "45-55", "55-65", "65-75", "Above 75"))
 
 demo$GENDER <- factor(demo$GENDER, 
                        labels = c("Male", "Female"))
@@ -125,74 +126,71 @@ demo %>%
   print(width = Inf)
 ```
 
-## Joining the Dietary and Food Code Datasets - `join`
+## Combined Dataset
 
-Reading in the dietary dataset and selecting the desired variables.
+Combining the first day dataset with the food code dataset to create `join`.
+
 ```{r}
-diet <- read.xport("DR1IFF_I.XPT")
+DR1IFF_I <- read.xport("DR1IFF_I.XPT")
 
-(diet <- as_tibble(diet) %>%
-  select(SEQN, KCAL = DR1IKCAL, USDA = DR1IFDCD))
+# Rename column to the same column in DRXFCD_I to inner_join later
+DR1IFF_I <- DR1IFF_I %>%
+  rename(DRXFDCD = DR1IFDCD)
+
+DRXFCD_I <- read.xport("DRXFCD_I.XPT")
 ```
 
-Reading in the food code dataset and selecting the desired variables.
 ```{r}
-food_code <- read.xport("DRXFCD_I.XPT")
+join <- inner_join(DR1IFF_I, DRXFCD_I, by = "DRXFDCD")
 
-(food_code <- as_tibble(food_code) %>%
-  select(USDA = DRXFDCD, SHORT = DRXFCSD, LONG = DRXFCLD))
+join %>%
+  select(SEQN, DR1IKCAL, DRXFDCD, DRXFCSD, DRXFCLD)
 ```
 
-Combining the dietary dataset with the food code dataset to create `join`.
+## Total Calories Dataset
+
+Finding the total number of calories consumed for each sample. 
+
 ```{r}
-join <- inner_join(diet, food_code, by = "USDA")
-
-(join <- as_tibble(join))
-```
-
-## Calculating Total Calories - `total`
-
-Calculating the total number of calories consumed.
-```{r}
-total <- join %>%
+total <- DR1IFF_I %>%
   group_by(SEQN) %>%
-  mutate(TOTAL = sum(KCAL)) %>%
+  mutate(TOTAL = sum(DR1IKCAL)) %>%
   select(SEQN, TOTAL)
 
 (total <- total %>% 
    distinct(SEQN, TOTAL))
 ```
 
-## Calculating Total Calories from Coffee - `coffee`
+## Total Coffee Calories Dataset
 
 Selecting the relevant food codes such as coffee creamer and multiple forms of coffee (brewed, cappuccino, Cuban, espresso, iced, instant, latte, macchiato, etc.) while ommitting unrelated coffee products (coffee cake, Irish coffee, etc.).
+
 ```{r}
-coffee_code <- food_code[c(393:405, 8254:8374, 8378), ]
+coffee_code <- DRXFCD_I[c(393:405, 8254:8374, 8378), ]
 (coffee_code <- as_tibble(coffee_code))
 ```
 
-Finding the total number of calories attributable to consuming coffee or coffee-related products.
+Finding the total number of calories attributed to consuming coffee or coffee-related products.
+
 ```{r}
-coffee <- inner_join(join, coffee_code, by = "USDA")
+coffee <- inner_join(join, coffee_code, by = "DRXFDCD")
 
 coffee <- coffee %>%
   group_by(SEQN) %>%
-  mutate(COFFEE_TOTAL = sum(KCAL)) %>%
+  mutate(COFFEE_TOTAL = sum(DR1IKCAL)) %>%
   select(SEQN, COFFEE_TOTAL)
 
 (coffee <- coffee %>%
   distinct(SEQN, COFFEE_TOTAL))
 ```
 
-## Final Dataset - `final`
+## Final Dataset
 
-First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL` using a left join between `total` and `coffee`.
+First, we created `clean`, a dataset with `SEQN`, `TOTAL`, `COFFEE_TOTAL` using a left join between `total` and `coffee`. Then we created `final` using inner join `clean` with `demo`. 
+
 ```{r}
 (clean <- left_join(total, coffee, by = "SEQN"))
-```
 
-Then we created `final` using inner join `clean` with `demo`. 
-```{r}
 final <- inner_join(clean, demo, by = "SEQN")
 
 final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
@@ -202,71 +200,17 @@ final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
 
 # 3. Data Visualization
 
-## Age distribution
 ```{r, message = FALSE, warning = FALSE}
-p1 <- final %>%
+final %>%
   filter(!is.na(AGE)) %>%
   ggplot(mapping = aes(x = AGE)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
+  geom_bar(fill = "#D69C4E", color = "white") +
   labs(title = "Age distribution",
        x = "Age",
        y = "Count") +
   theme_minimal()
 ```
 
-## Education distribution
-```{r, message = FALSE, warning = FALSE}
-p2 <- final %>%
-  ggplot(mapping = aes(x = EDUCATION)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
-  labs(title = "Education distribution",
-       x = "Education",
-       y = "Count") +
-  theme_minimal() +
-  coord_flip() + 
-  scale_x_discrete(limits = rev(levels(final$EDUCATION)))
-```
-
-## Race distribution
-```{r, message = FALSE, warning = FALSE}
-p3 <- final %>%
-  ggplot(mapping = aes(x = RACE)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
-  labs(title = "Race distribution",
-       x = "Race",
-       y = "Count") +
-  theme_minimal()
-```
-
-## Household income distribution
-```{r, message = FALSE, warning = FALSE}
-p4 <- final %>%
-  ggplot(mapping = aes(x = HH_INC)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
-  labs(title = "Household income distribution",
-       x = "Household income",
-       y = "Count") +
-  theme_minimal()
-```
-
-```{r}
-devtools::install_github("kassambara/ggpubr")
-grid.arrange(p1, p2, p3)
-```
-
-## Household size distribution
-```{r, message = FALSE, warning = FALSE}
-final %>%
-  ggplot(mapping = aes(x = HH_SIZE)) + 
-  geom_bar(fill = "#D69C4E", color = "white") +
-  labs(title = "Household size distribution",
-       x = "Household size",
-       y = "Count") +
-  scale_x_discrete(limits = c(1:7)) +
-  theme_minimal()
-```
-
-## Distribution of calories from coffee consumption
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
@@ -277,7 +221,6 @@ final %>%
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by gender
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot() + 
@@ -290,7 +233,6 @@ final %>%
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by age
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot() + 
@@ -303,7 +245,6 @@ final %>%
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by race
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot() + 
@@ -316,13 +257,12 @@ final %>%
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by education
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   filter(!(EDUCATION == "Unsure" | is.na(EDUCATION))) %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = EDUCATION), color = "white") +
-  labs(title = "Distribution of calories from coffee consumption by education",
+  labs(title = "Distribution of calories from coffee consumption",
        x = "Coffee consumption (calories)",
        y = "Count") +
   scale_fill_manual(name = "Education", values = wes_palette("IsleofDogs2")) +
@@ -384,7 +324,7 @@ summary(reg2)
 ```{r}
 tony <- data.frame(
   GENDER = "Male",
-  AGE = "15-25",
+  AGE = "Below 25",
   RACE = "Other/Multi",
   EDUCATION = "College graduate or above"
   )
@@ -394,25 +334,4 @@ tony <- data.frame(
 predict(reg2, newdata = tony)
 ```
 
-# Bonus
 
-```{r}
-diet <- read.xport("DR1IFF_I.XPT")
-
-diet <- diet %>%
-  select(SEQN, KCAL = DR1IKCAL, GRAMS = DR1IGRMS, USDA = DR1IFDCD)
-
-avgkcal <- right_join(diet, coffee_code, by = "USDA") %>%
-  group_by(USDA) %>%
-  mutate(AVGKCAL = mean(KCAL / GRAMS) * mean(GRAMS)) %>%
-  select(USDA, AVGKCAL, SHORT, LONG) %>%
-  distinct(.) %>%
-  arrange(-(AVGKCAL))
-
-right_join(diet, coffee_code, by = "USDA") %>%
-  group_by(USDA) %>%
-  mutate(AVGKCAL = mean(KCAL)) %>%
-  select(USDA, AVGKCAL, SHORT, LONG) %>%
-  distinct(.) %>%
-  arrange(-(AVGKCAL))
-```
