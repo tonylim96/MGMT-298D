@@ -204,19 +204,20 @@ final$COFFEE_TOTAL <- replace_na(final$COFFEE_TOTAL, 0)
 
 ## Age distribution
 ```{r, message = FALSE, warning = FALSE}
-p1 <- final %>%
+age.p <- final %>%
   filter(!is.na(AGE)) %>%
   ggplot(mapping = aes(x = AGE)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
+  geom_bar(fill = "#fff1d8", color = "white") +
   labs(title = "Age distribution",
        x = "Age",
        y = "Count") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ## Education distribution
 ```{r, message = FALSE, warning = FALSE}
-p2 <- final %>%
+education.p <- final %>%
   ggplot(mapping = aes(x = EDUCATION)) + 
   geom_bar(fill = "#a06d4c", color = "white") +
   labs(title = "Education distribution",
@@ -229,9 +230,9 @@ p2 <- final %>%
 
 ## Race distribution
 ```{r, message = FALSE, warning = FALSE}
-p3 <- final %>%
+race.p <- final %>%
   ggplot(mapping = aes(x = RACE)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
+  geom_bar(fill = "#dc9265", color = "white") +
   labs(title = "Race distribution",
        x = "Race",
        y = "Count") +
@@ -240,18 +241,23 @@ p3 <- final %>%
 
 ## Household income distribution
 ```{r, message = FALSE, warning = FALSE}
-p4 <- final %>%
+hh_inc.p <- final %>%
   ggplot(mapping = aes(x = HH_INC)) + 
-  geom_bar(fill = "#a06d4c", color = "white") +
+  geom_bar(fill = "#ee7936", color = "white") +
   labs(title = "Household income distribution",
        x = "Household income",
        y = "Count") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ```{r}
-devtools::install_github("kassambara/ggpubr")
-grid.arrange(p1, p2, p3)
+library(ggpubr)
+
+ggarrange(age.p,  hh_inc.p,
+          race.p, education.p,
+          ncol = 2, 
+          nrow = 2)
 ```
 
 ## Household size distribution
@@ -266,11 +272,41 @@ final %>%
   theme_minimal()
 ```
 
+```{r}
+total.p <- final %>%
+  ggplot(mapping = aes(x = TOTAL)) + 
+  geom_histogram(fill = "#a06d4c", color = "white") +
+  labs(title = "Distribution of calories",
+       x = "Calories",
+       y = "Count") +
+  theme_minimal()
+```
+
+
+```{r}
+total_gender.p <- final %>%
+  ggplot(mapping = aes(x = TOTAL, fill = GENDER)) + 
+  geom_histogram(color = "white") +
+  labs(title = "Distribution of calories by gender",
+       x = "Calories",
+       y = "Count") +
+  theme_minimal() +
+  scale_fill_manual(name = "Gender", values = c("#ee7936", "#599ed6")) +
+  facet_wrap(~ GENDER)
+```
+
+```{r}
+ggarrange(total.p,
+          total_gender.p,
+          ncol = 1)
+```
+
+
 ## Distribution of calories from coffee consumption
 ```{r, message = FALSE, warning = FALSE}
-final %>%
+coffee_total.p <- final %>%
   ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
-  geom_histogram(fill = "#D69C4E", color = "white") +
+  geom_histogram(fill = "#a06d4c", color = "white") +
   labs(title = "Distribution of calories from coffee consumption",
        x = "Coffee consumption (calories)",
        y = "Count") +
@@ -279,15 +315,21 @@ final %>%
 
 ## Distribution of calories from coffee consumption by gender
 ```{r, message = FALSE, warning = FALSE}
-final %>%
+coffee_total_gender.p <- final %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = GENDER), color = "white") +
   labs(title = "Distribution of calories from coffee consumption by gender",
        x = "Coffee consumption (calories)",
        y = "Count") +
-  scale_fill_manual(name = "Gender", values = wes_palette("Darjeeling2")) +
+  scale_fill_manual(name = "Gender", values = c("#ee7936", "#599ed6")) +
   facet_wrap(~ GENDER) +
   theme_minimal()
+```
+
+```{r}
+ggarrange(coffee_total.p,
+          coffee_total_gender.p,
+          ncol = 1)
 ```
 
 ## Distribution of calories from coffee consumption by age
@@ -346,6 +388,7 @@ tapply(final$TOTAL, final$GENDER, mean, na.rm = T)
 
 ```{r}
 tapply(final$COFFEE_TOTAL, final$GENDER, mean, na.rm = T)
+tapply(final$COFFEE_TOTAL, final$GENDER, median)
 ```
 
 ```{r}
@@ -357,11 +400,43 @@ tapply(final$COFFEE_TOTAL, final$EDUCATION, mean, na.rm = T)
 ```
 
 ```{r}
+final %>%
+  filter(!is.na(EDUCATION)) %>%
+  group_by(EDUCATION) %>%
+  mutate(COFFEE_EDUCATION = mean(COFFEE_TOTAL)) %>%
+  select(EDUCATION, COFFEE_EDUCATION) %>%
+  distinct(EDUCATION, COFFEE_EDUCATION) %>%
+  ggplot() + 
+  geom_bar(mapping = aes(x = EDUCATION, y = COFFEE_EDUCATION), stat = "identity") +
+  labs(title = "Average calories from coffee consumption by education",
+       x = "Education",
+       y = "Average calories") +
+  theme_minimal() +
+  coord_flip() + 
+  scale_x_discrete(limits = rev(levels(final$EDUCATION)))
+```
+
+```{r}
 tapply(final$TOTAL, final$RACE, mean, na.rm = T)
 ```
 
 ```{r}
 tapply(final$COFFEE_TOTAL, final$RACE, mean, na.rm = T)
+```
+
+```{r}
+final %>%
+  #filter(!is.na(EDUCATION)) %>%
+  group_by(RACE) %>%
+  mutate(COFFEE_RACE = mean(COFFEE_TOTAL)) %>%
+  select(RACE, COFFEE_RACE) %>%
+  distinct(RACE, COFFEE_RACE) %>%
+  ggplot() + 
+  geom_bar(mapping = aes(x = RACE, y = COFFEE_RACE), stat = "identity") +
+  labs(title = "Average calories from coffee consumption by race",
+       x = "Race",
+       y = "Average calories") +
+  theme_minimal()
 ```
 
 ```{r}
