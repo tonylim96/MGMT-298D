@@ -471,6 +471,7 @@ predict(reg2, newdata = tony)
 
 # Bonus
 
+Finding the coffee products with the highest average calories. 
 ```{r}
 diet <- read.xport("DR1IFF_I.XPT")
 
