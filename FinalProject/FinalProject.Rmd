@@ -332,6 +332,48 @@ ggarrange(coffee_total.p,
           ncol = 1)
 ```
 
+```{r}
+avgcoffee_education.p <- final %>%
+  filter(!is.na(EDUCATION)) %>%
+  group_by(EDUCATION) %>%
+  mutate(COFFEE_EDUCATION = mean(COFFEE_TOTAL)) %>%
+  select(EDUCATION, COFFEE_EDUCATION) %>%
+  distinct(EDUCATION, COFFEE_EDUCATION) %>%
+  ggplot() + 
+  geom_bar(mapping = aes(x = EDUCATION, y = COFFEE_EDUCATION), 
+           fill = "#a06d4c", 
+           stat = "identity") +
+  labs(title = "Average coffee consumption by education",
+       x = "Education",
+       y = "Average coffee consumption (grams)") +
+  theme_minimal() +
+  coord_flip() + 
+  scale_x_discrete(limits = rev(levels(final$EDUCATION)))
+```
+
+```{r}
+avgcoffee_race.p <- final %>%
+  #filter(!is.na(EDUCATION)) %>%
+  group_by(RACE) %>%
+  mutate(COFFEE_RACE = mean(COFFEE_TOTAL)) %>%
+  select(RACE, COFFEE_RACE) %>%
+  distinct(RACE, COFFEE_RACE) %>%
+  ggplot() + 
+  geom_bar(mapping = aes(x = RACE, y = COFFEE_RACE), 
+           fill = "#dc9265", 
+           stat = "identity") +
+  labs(title = "Average coffee consumption by race",
+       x = "Race",
+       y = "Average coffee consumption (grams)") +
+  theme_minimal()
+```
+
+```{r}
+ggarrange(avgcoffee_education.p,
+          avgcoffee_race.p,
+          ncol = 1)
+```
+
 ## Distribution of calories from coffee consumption by age
 ```{r, message = FALSE, warning = FALSE}
 final %>%
@@ -400,53 +442,11 @@ tapply(final$COFFEE_TOTAL, final$EDUCATION, mean, na.rm = T)
 ```
 
 ```{r}
-avgcoffee_education.p <- final %>%
-  filter(!is.na(EDUCATION)) %>%
-  group_by(EDUCATION) %>%
-  mutate(COFFEE_EDUCATION = mean(COFFEE_TOTAL)) %>%
-  select(EDUCATION, COFFEE_EDUCATION) %>%
-  distinct(EDUCATION, COFFEE_EDUCATION) %>%
-  ggplot() + 
-  geom_bar(mapping = aes(x = EDUCATION, y = COFFEE_EDUCATION), 
-           fill = "#a06d4c", 
-           stat = "identity") +
-  labs(title = "Average coffee consumption by education",
-       x = "Education",
-       y = "Average coffee consumption (grams)") +
-  theme_minimal() +
-  coord_flip() + 
-  scale_x_discrete(limits = rev(levels(final$EDUCATION)))
-```
-
-```{r}
 tapply(final$TOTAL, final$RACE, mean, na.rm = T)
 ```
 
 ```{r}
 tapply(final$COFFEE_TOTAL, final$RACE, mean, na.rm = T)
-```
-
-```{r}
-avgcoffee_race.p <- final %>%
-  #filter(!is.na(EDUCATION)) %>%
-  group_by(RACE) %>%
-  mutate(COFFEE_RACE = mean(COFFEE_TOTAL)) %>%
-  select(RACE, COFFEE_RACE) %>%
-  distinct(RACE, COFFEE_RACE) %>%
-  ggplot() + 
-  geom_bar(mapping = aes(x = RACE, y = COFFEE_RACE), 
-           fill = "#dc9265", 
-           stat = "identity") +
-  labs(title = "Average coffee consumption by race",
-       x = "Race",
-       y = "Average coffee consumption (grams)") +
-  theme_minimal()
-```
-
-```{r}
-ggarrange(avgcoffee_education.p,
-          avgcoffee_race.p,
-          ncol = 1)
 ```
 
 ```{r}
