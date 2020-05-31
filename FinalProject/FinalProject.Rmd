@@ -132,7 +132,7 @@ Reading in the dietary dataset and selecting the desired variables.
 diet <- read.xport("DR1IFF_I.XPT")
 
 (diet <- as_tibble(diet) %>%
-  select(SEQN, KCAL = DR1IKCAL, USDA = DR1IFDCD))
+  select(SEQN, KCAL = DR1IKCAL, GRAM = DR1IGRMS, USDA = DR1IFDCD))
 ```
 
 Reading in the food code dataset and selecting the desired variables.
@@ -177,7 +177,7 @@ coffee <- inner_join(join, coffee_code, by = "USDA")
 
 coffee <- coffee %>%
   group_by(SEQN) %>%
-  mutate(COFFEE_TOTAL = sum(KCAL)) %>%
+  mutate(COFFEE_TOTAL = sum(GRAM)) %>%
   select(SEQN, COFFEE_TOTAL)
 
 (coffee <- coffee %>%
@@ -307,8 +307,8 @@ ggarrange(total.p,
 coffee_total.p <- final %>%
   ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
   geom_histogram(fill = "#a06d4c", color = "white") +
-  labs(title = "Distribution of calories from coffee consumption",
-       x = "Coffee consumption (calories)",
+  labs(title = "Distribution of coffee consumption",
+       x = "Coffee consumption (grams)",
        y = "Count") +
   theme_minimal()
 ```
@@ -318,8 +318,8 @@ coffee_total.p <- final %>%
 coffee_total_gender.p <- final %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = GENDER), color = "white") +
-  labs(title = "Distribution of calories from coffee consumption by gender",
-       x = "Coffee consumption (calories)",
+  labs(title = "Distribution of coffee consumption by gender",
+       x = "Coffee consumption (grams)",
        y = "Count") +
   scale_fill_manual(name = "Gender", values = c("#ee7936", "#599ed6")) +
   facet_wrap(~ GENDER) +
