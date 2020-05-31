@@ -400,17 +400,19 @@ tapply(final$COFFEE_TOTAL, final$EDUCATION, mean, na.rm = T)
 ```
 
 ```{r}
-final %>%
+avgcoffee_education.p <- final %>%
   filter(!is.na(EDUCATION)) %>%
   group_by(EDUCATION) %>%
   mutate(COFFEE_EDUCATION = mean(COFFEE_TOTAL)) %>%
   select(EDUCATION, COFFEE_EDUCATION) %>%
   distinct(EDUCATION, COFFEE_EDUCATION) %>%
   ggplot() + 
-  geom_bar(mapping = aes(x = EDUCATION, y = COFFEE_EDUCATION), stat = "identity") +
-  labs(title = "Average calories from coffee consumption by education",
+  geom_bar(mapping = aes(x = EDUCATION, y = COFFEE_EDUCATION), 
+           fill = "#a06d4c", 
+           stat = "identity") +
+  labs(title = "Average coffee consumption by education",
        x = "Education",
-       y = "Average calories") +
+       y = "Average coffee consumption (grams)") +
   theme_minimal() +
   coord_flip() + 
   scale_x_discrete(limits = rev(levels(final$EDUCATION)))
@@ -425,18 +427,26 @@ tapply(final$COFFEE_TOTAL, final$RACE, mean, na.rm = T)
 ```
 
 ```{r}
-final %>%
+avgcoffee_race.p <- final %>%
   #filter(!is.na(EDUCATION)) %>%
   group_by(RACE) %>%
   mutate(COFFEE_RACE = mean(COFFEE_TOTAL)) %>%
   select(RACE, COFFEE_RACE) %>%
   distinct(RACE, COFFEE_RACE) %>%
   ggplot() + 
-  geom_bar(mapping = aes(x = RACE, y = COFFEE_RACE), stat = "identity") +
-  labs(title = "Average calories from coffee consumption by race",
+  geom_bar(mapping = aes(x = RACE, y = COFFEE_RACE), 
+           fill = "#dc9265", 
+           stat = "identity") +
+  labs(title = "Average coffee consumption by race",
        x = "Race",
-       y = "Average calories") +
+       y = "Average coffee consumption (grams)") +
   theme_minimal()
+```
+
+```{r}
+ggarrange(avgcoffee_education.p,
+          avgcoffee_race.p,
+          ncol = 1)
 ```
 
 ```{r}
@@ -444,7 +454,7 @@ final %>%
   t.test(COFFEE_TOTAL ~ GENDER, data = ., var.equal = TRUE)
 ```
 
-# 5. Linear Regression
+# 5. Multiple Linear Regression
 
 ```{r}
 reg <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + MARITAL + HH_SIZE + HH_INC, data = final)
@@ -452,7 +462,7 @@ summary(reg)
 ```
 
 ```{r}
-reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION, data = final)
+reg2 <- glm(COFFEE_TOTAL ~ GENDER + AGE + RACE + EDUCATION + HH_SIZE, data = final)
 summary(reg2)
 ```
 
@@ -461,7 +471,8 @@ tony <- data.frame(
   GENDER = "Male",
   AGE = "15-25",
   RACE = "Other/Multi",
-  EDUCATION = "College graduate or above"
+  EDUCATION = "College graduate or above",
+  HH_SIZE = 1
   )
 ```
 
