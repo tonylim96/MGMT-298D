@@ -380,7 +380,7 @@ final %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL), color = "white") +
   labs(title = "Distribution of coffee consumption by age",
-       x = "Age",
+       x = "Coffee consumption (grams)",
        y = "Count") +
   #scale_fill_manual(name = "Coffee consumption (grams)", values = wes_palette("Moonrise2")) +
   facet_wrap(~ AGE) +
