@@ -1,5 +1,5 @@
 ---
-title: "Final Project"
+title: "Final Project Predicting Coffee Consumption Using Multiple Linear Regression"
 author: "Team 6 (Alex Frumkin, Tony Lim, Sara Nager, Jaanhvi Vaidya, Trisha Mathelier)"
 output:
   html_document:
@@ -11,7 +11,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-For our final project, we wanted to analyze the calories attributed to coffee consumption and determine whether a linear regression is applicable. We used datasets from the [National Health and Nutrition Examination Survey (NHANES) 2015-2016](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx?BeginYear=2015). 
+# Introduction
+
+For our final project, we wanted to analyze coffee consumption (measured in grams) and to determine whether a multiple linear regression was applicable. We utilized datasets from the [National Health and Nutrition Examination Survey (NHANES) 2015-2016](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx?BeginYear=2015). 
 
 Specifically, we used
 
@@ -23,7 +25,7 @@ Variables in the `final` dataset include:
 
 * **SEQN**: Respondent sequence number
 * **TOTAL**: Total number of calories consumed
-* **COFFEE_TOTAL**: Total number of calories attributable to coffee consumption
+* **COFFEE_TOTAL**: Total number of grams attributable to coffee consumption
 * **GENDER**: Gender
 * **AGE**: Age in years at screening
 * **RACE**: Race
@@ -57,6 +59,7 @@ library(dplyr)
 library(foreign)
 library(ggplot2)
 library(jtools)
+library(ggpubr)
 library(tidyverse)
 library(wesanderson)
 ```
@@ -127,7 +130,7 @@ demo %>%
 
 ## Joining the Dietary and Food Code Datasets - `join`
 
-Reading in the dietary dataset and selecting the desired variables.
+Reading in the dietary dataset and selecting/renaming the desired variables.
 ```{r}
 diet <- read.xport("DR1IFF_I.XPT")
 
@@ -135,7 +138,7 @@ diet <- read.xport("DR1IFF_I.XPT")
   select(SEQN, KCAL = DR1IKCAL, GRAM = DR1IGRMS, USDA = DR1IFDCD))
 ```
 
-Reading in the food code dataset and selecting the desired variables.
+Reading in the food code dataset and renaming the variables.
 ```{r}
 food_code <- read.xport("DRXFCD_I.XPT")
 
@@ -163,7 +166,7 @@ total <- join %>%
    distinct(SEQN, TOTAL))
 ```
 
-## Calculating Total Calories from Coffee - `coffee`
+## Calculating Total Grams of Coffee - `coffee`
 
 Selecting the relevant food codes such as coffee creamer and multiple forms of coffee (brewed, cappuccino, Cuban, espresso, iced, instant, latte, macchiato, etc.) while ommitting unrelated coffee products (coffee cake, Irish coffee, etc.).
 ```{r}
@@ -171,7 +174,7 @@ coffee_code <- food_code[c(393:405, 8254:8374, 8378), ]
 (coffee_code <- as_tibble(coffee_code))
 ```
 
-Finding the total number of calories attributable to consuming coffee or coffee-related products.
+Finding the total number of grams attributable to consuming coffee or coffee-related products.
 ```{r}
 coffee <- inner_join(join, coffee_code, by = "USDA")
 
@@ -251,9 +254,7 @@ hh_inc.p <- final %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-```{r}
-library(ggpubr)
-
+```{r, message = FALSE, warning = FALSE}
 ggarrange(age.p,  hh_inc.p,
           race.p, education.p,
           ncol = 2, 
@@ -272,7 +273,7 @@ final %>%
   theme_minimal()
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 total.p <- final %>%
   ggplot(mapping = aes(x = TOTAL)) + 
   geom_histogram(fill = "#a06d4c", color = "white") +
@@ -281,7 +282,6 @@ total.p <- final %>%
        y = "Count") +
   theme_minimal()
 ```
-
 
 ```{r}
 total_gender.p <- final %>%
@@ -295,14 +295,14 @@ total_gender.p <- final %>%
   facet_wrap(~ GENDER)
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 ggarrange(total.p,
           total_gender.p,
           ncol = 1)
 ```
 
 
-## Distribution of calories from coffee consumption
+## Distribution of coffee consumption
 ```{r, message = FALSE, warning = FALSE}
 coffee_total.p <- final %>%
   ggplot(mapping = aes(x = COFFEE_TOTAL)) + 
@@ -313,7 +313,7 @@ coffee_total.p <- final %>%
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by gender
+## Distribution of coffee consumption by gender
 ```{r, message = FALSE, warning = FALSE}
 coffee_total_gender.p <- final %>%
   ggplot() + 
@@ -326,7 +326,7 @@ coffee_total_gender.p <- final %>%
   theme_minimal()
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 ggarrange(coffee_total.p,
           coffee_total_gender.p,
           ncol = 1)
@@ -368,46 +368,46 @@ avgcoffee_race.p <- final %>%
   theme_minimal()
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 ggarrange(avgcoffee_education.p,
           avgcoffee_race.p,
           ncol = 1)
 ```
 
-## Distribution of calories from coffee consumption by age
+## Distribution coffee consumption by age
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL), color = "white") +
-  labs(title = "Distribution of calories from coffee consumption by age",
+  labs(title = "Distribution of coffee consumption by age",
        x = "Age",
        y = "Count") +
-  #scale_fill_manual(name = "Coffee consumption (calories)", values = wes_palette("Moonrise2")) +
+  #scale_fill_manual(name = "Coffee consumption (grams)", values = wes_palette("Moonrise2")) +
   facet_wrap(~ AGE) +
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by race
+## Distribution of coffee consumption by race
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = RACE), color = "white") +
-  labs(title = "Distribution of calories from coffee consumption by race",
-       x = "Coffee consumption (calories)",
+  labs(title = "Distribution of coffee consumption by race",
+       x = "Coffee consumption (grams)",
        y = "Count") +
   scale_fill_manual(name = "Race", values = wes_palette("Moonrise2")) +
   facet_wrap(~ RACE) +
   theme_minimal()
 ```
 
-## Distribution of calories from coffee consumption by education
+## Distribution of coffee consumption by education
 ```{r, message = FALSE, warning = FALSE}
 final %>%
   filter(!(EDUCATION == "Unsure" | is.na(EDUCATION))) %>%
   ggplot() + 
   geom_histogram(mapping = aes(x = COFFEE_TOTAL, fill = EDUCATION), color = "white") +
-  labs(title = "Distribution of calories from coffee consumption by education",
-       x = "Coffee consumption (calories)",
+  labs(title = "Distribution of coffee consumption by education",
+       x = "Coffee consumption (grams)",
        y = "Count") +
   scale_fill_manual(name = "Education", values = wes_palette("IsleofDogs2")) +
   facet_wrap(~ EDUCATION) +
